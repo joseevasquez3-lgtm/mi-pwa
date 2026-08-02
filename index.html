@@ -298,4 +298,971 @@
                 <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-medium">Límite $900 / $30</span>
             </div>
             <p class="text-xs text-gray-500 mb-3">Comparativa temporal del acumulado de egresos frente a la línea objetivo del presupuesto.</p>
-            <div class="bg-g
+            <div class="bg-gray-50 p-2 rounded border border-gray-100 flex justify-center">
+                <svg id="grafico-gastos" viewBox="0 0 320 160" class="w-full h-auto max-h-48"></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA 4: ANALÍTICA Y RESULTADO NETO -->
+    <div id="vista-analitica" class="hidden">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Reporte y Descarga de Análisis</h2>
+            <button onclick="descargarExcelAnalitica()" class="text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded hover:bg-green-100 font-medium">📥 Excel Completo</button>
+        </div>
+
+        <div class="card p-5 mb-5">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-3">Desglose de Ingresos (%)</h2>
+            <div id="analitica-ingresos" class="space-y-2 text-sm"></div>
+        </div>
+
+        <div class="card p-5 mb-5">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-3">Desglose de Gastos (%)</h2>
+            <div id="analitica-gastos" class="space-y-2 text-sm"></div>
+        </div>
+
+        <div class="card p-5">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-3">Resultado Neto Día a Día</h2>
+            <div id="analitica-neto" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CUENTAS Y DEUDAS -->
+    <div id="modal-cuentas" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg w-full max-w-sm p-5 modal-enter shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="font-semibold text-gray-800">Saldos y Deudas Registradas</h3>
+                <button onclick="cerrarModalCuentas()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div class="mb-4">
+                <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cuentas Líquidas</h4>
+                <div id="lista-cuentas" class="space-y-2"></div>
+            </div>
+            <div class="border-t pt-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pasivos (Deudas)</h4>
+                    <span class="text-xs font-bold text-red-500" id="total-deudas-modal">$0.00</span>
+                </div>
+                <div id="lista-deudas" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const conceptosIngresosReales = [
+            "Sueldo", "Bonos", "Ventas al por menor", "Ventas al por mayor", "Trading", "Compra/venta $", "Servicios financieros", "Otros"
+        ];
+
+        const conceptosGastosReales = [
+            "Mercado alimentos", "Colegio Luna", "Telefonia celular", "Internet", "Agua", "Luz", "Alquiler vivienda", "Alquiler vehículo", "Gasolina", "Alimentación Luna", "Ropa Luna", "Juguetes Luna", "Imprevistos personales", "Salidas eventuales", "Viajes", "Diversion", "Higiene personal", "Higiene Luna", "Ropa personal", "Compra de activos", "Otros"
+        ];
+
+        let estadoPorDefecto = {
+            tasaBCV: 748.79, // Actualizada
+            tasaUSDT: 840.00,
+            ingresosMensuales: 900.00,
+            presupuestoDiario: 30.00,
+            gastosAcumuladosUSD: 0,
+            cuentasLiquidas: [
+                { id: "banesco", nombre: "Banesco", saldoNativo: 30.53 + 33.35, moneda: "BS" }, // Sumados 33.35 Bs -> 63.88 Bs
+                { id: "bdv", nombre: "Venezuela", saldoNativo: 0.00, moneda: "BS" },
+                { id: "binance", nombre: "Binance", saldoNativo: 135.97, moneda: "USDT" }
+            ],
+            deudas: [
+                { nombre: "Carla", montoUSD: 97.00 },
+                { nombre: "Sai", montoUSD: 150.00 },
+                { nombre: "Paul", montoUSD: 300.00 },
+                { nombre: "Mamá", montoUSD: 1000.00 },
+                { nombre: "Luis", montoUSD: 5600.00 },
+                { nombre: "Daniela", montoUSD: 650.00 },
+                { nombre: "Ramón", montoUSD: 500.00 },
+                { nombre: "Papá", montoUSD: 350.00 }
+            ],
+            historial: [],
+            historialTrades: [],
+            historialP2P: [],
+            filtroFecha: null
+        };
+
+        let estado = JSON.parse(localStorage.getItem('sandbox_estado_v13')) || estadoPorDefecto;
+        estado.cuentasLiquidas.forEach((c, idx) => { if(!c.id) c.id = 'cuenta_' + idx; });
+        if(estado.filtroFecha === undefined) estado.filtroFecha = null;
+        // Forzar actualización de tasa si venía de versión anterior con 740.00
+        if(estado.tasaBCV === 740.00) estado.tasaBCV = 748.79;
+
+        function guardarDatos() {
+            localStorage.setItem('sandbox_estado_v13', JSON.stringify(estado));
+        }
+
+        function reiniciarDatos() {
+            if(confirm("¿Reiniciar toda la app con los valores iniciales configurados?")) {
+                localStorage.removeItem('sandbox_estado_v13');
+                location.reload();
+            }
+        }
+
+        function cambiarVista(vista) {
+            ['finanzas', 'transferencias', 'trading', 'graficas', 'analitica'].forEach(v => {
+                document.getElementById('vista-' + v).classList.add('hidden');
+                document.getElementById('tab-' + v).classList.remove('active');
+            });
+            document.getElementById('vista-' + vista).classList.remove('hidden');
+            document.getElementById('tab-' + vista).classList.add('active');
+            
+            if(vista === 'transferencias') actualizarSelectsP2P();
+            if(vista === 'trading') actualizarSelectsTrading();
+            if(vista === 'graficas') renderizarGraficasLineales();
+            if(vista === 'analitica') generarAnaliticaAvanzada();
+        }
+
+        function cambiarSubTabP2P(sub) {
+            if(sub === 'p2p') {
+                document.getElementById('box-form-p2p').classList.remove('hidden');
+                document.getElementById('box-form-banco').classList.add('hidden');
+                document.getElementById('subtab-p2p').className = "flex-1 py-1.5 rounded-md bg-white shadow-sm text-center font-bold";
+                document.getElementById('subtab-banco').className = "flex-1 py-1.5 rounded-md text-gray-500 text-center";
+            } else {
+                document.getElementById('box-form-p2p').classList.add('hidden');
+                document.getElementById('box-form-banco').classList.remove('hidden');
+                document.getElementById('subtab-banco').className = "flex-1 py-1.5 rounded-md bg-white shadow-sm text-center font-bold";
+                document.getElementById('subtab-p2p').className = "flex-1 py-1.5 rounded-md text-gray-500 text-center";
+                actualizarSelectsBancos();
+            }
+        }
+
+        function editarTasas() {
+            let nuevaBCV = prompt("Actualizar Tasa Oficial BCV:", estado.tasaBCV);
+            if (nuevaBCV && !isNaN(nuevaBCV)) estado.tasaBCV = parseFloat(nuevaBCV);
+            let nuevaUSDT = prompt("Actualizar Tasa Binance USDT:", estado.tasaUSDT);
+            if (nuevaUSDT && !isNaN(nuevaUSDT)) estado.tasaUSDT = parseFloat(nuevaUSDT);
+            guardarDatos();
+            actualizarUI();
+        }
+
+        function convertirAUSDHistorico(monto, moneda, tasaBCVRef, tasaUSDTRef) {
+            if (moneda === 'BS') return monto / tasaBCVRef;
+            if (moneda === 'USDT') return (monto * tasaUSDTRef) / tasaBCVRef;
+            if (moneda === 'BCV') return monto;
+            return monto;
+        }
+
+        function convertirAUSDActual(monto, moneda) {
+            if (moneda === 'BS') return monto / estado.tasaBCV;
+            if (moneda === 'USDT') return (monto * estado.tasaUSDT) / estado.tasaBCV;
+            if (moneda === 'BCV') return monto;
+            return monto;
+        }
+
+        function obtenerDisponibleUSD() {
+            if(!estado.filtroFecha) {
+                return estado.cuentasLiquidas.reduce((total, c) => total + convertirAUSDActual(c.saldoNativo, c.moneda), 0);
+            } else {
+                let baseInicial = estado.cuentasLiquidas.reduce((total, c) => total + convertirAUSDActual(c.saldoNativo, c.moneda), 0);
+                let ajuste = 0;
+                let fechaFiltroObj = new Date(estado.filtroFecha);
+                
+                estado.historial.forEach(m => {
+                    let mDate = new Date(m.fechaISO);
+                    if(mDate > fechaFiltroObj) {
+                        ajuste += (m.tipo === 'ingreso' ? -m.montoUSD : m.montoUSD);
+                    }
+                });
+                return baseInicial - ajuste;
+            }
+        }
+
+        function cambiarFiltroFecha(valor) {
+            estado.filtroFecha = valor ? valor : null;
+            document.getElementById('btn-limpiar-fecha').classList.toggle('hidden', !estado.filtroFecha);
+            document.getElementById('txt-modo-fecha').innerText = estado.filtroFecha ? `Acumulado al: ${estado.filtroFecha}` : "Vista General (Acumulado)";
+            actualizarUI();
+        }
+
+        function limpiarFiltroFecha() {
+            estado.filtroFecha = null;
+            document.getElementById('selector-fecha-filtro').value = '';
+            document.getElementById('btn-limpiar-fecha').classList.add('hidden');
+            document.getElementById('txt-modo-fecha').innerText = "Vista General (Acumulado)";
+            actualizarUI();
+        }
+
+        function cambiarTipoMovimiento() {
+            const esIngreso = document.getElementById('tipo-movimiento').checked;
+            const selectCategoria = document.getElementById('categoria-movimiento');
+            const btnGuardar = document.getElementById('btn-guardar');
+            
+            document.getElementById('label-gasto').className = esIngreso ? 'text-gray-400 mr-2' : 'text-gray-900 mr-2';
+            document.getElementById('label-ingreso').className = esIngreso ? 'text-green-600 ml-2 font-bold' : 'text-gray-400 ml-2';
+
+            selectCategoria.innerHTML = '';
+            const listaConceptos = esIngreso ? conceptosIngresosReales : conceptosGastosReales;
+            listaConceptos.forEach(cat => {
+                selectCategoria.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+
+            btnGuardar.innerText = esIngreso ? "Registrar Ingreso" : "Guardar Gasto";
+            btnGuardar.className = esIngreso ? "w-full bg-green-600 text-white font-medium py-3 rounded shadow hover:bg-green-700 transition-colors" : "w-full bg-gray-900 text-white font-medium py-3 rounded shadow hover:bg-gray-800 transition-colors";
+            actualizarSelectCuentasFormulario();
+        }
+
+        function actualizarSelectCuentasFormulario() {
+            const selectCuenta = document.getElementById('cuenta-movimiento');
+            selectCuenta.innerHTML = '';
+            estado.cuentasLiquidas.forEach(c => {
+                selectCuenta.innerHTML += `<option value="${c.id}">${c.nombre} (${c.moneda})</option>`;
+            });
+        }
+
+        function actualizarSelectsP2P() {
+            const binance = document.getElementById('p2p-cuenta-binance');
+            const banco = document.getElementById('p2p-cuenta-banco');
+            binance.innerHTML = ''; banco.innerHTML = '';
+            estado.cuentasLiquidas.forEach(c => {
+                if(c.moneda === 'USDT') binance.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+                if(c.moneda === 'BS') banco.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+        }
+
+        function actualizarSelectsBancos() {
+            const origen = document.getElementById('banco-origen');
+            const destino = document.getElementById('banco-destino');
+            origen.innerHTML = ''; destino.innerHTML = '';
+            estado.cuentasLiquidas.forEach(c => {
+                if(c.moneda === 'BS') {
+                    origen.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+                    destino.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+                }
+            });
+        }
+
+        function actualizarSelectsTrading() {
+            const selectDestino = document.getElementById('trade-cuenta-destino');
+            selectDestino.innerHTML = '';
+            estado.cuentasLiquidas.forEach(c => {
+                if(c.moneda === 'USDT') selectDestino.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+        }
+
+        function actualizarLabelsP2P() {
+            const tipo = document.getElementById('p2p-tipo').value;
+            const titulo = document.getElementById('label-monto-p2p-titulo');
+            const comisionBox = document.getElementById('contenedor-comision');
+            if(tipo === 'venta') {
+                titulo.innerText = "Monto USDT a Vender";
+                comisionBox.innerHTML = `<span>Comisión Taker Binance:</span><span class="font-bold text-gray-900">0.05 USDT</span>`;
+            } else {
+                titulo.innerText = "Monto USDT a Comprar";
+                comisionBox.innerHTML = `<span>Comisión Compra P2P:</span><span class="font-bold text-green-600">0.00 USDT (Sin comisión)</span>`;
+            }
+        }
+
+        function actualizarUI() {
+            document.getElementById('txt-tasa').innerText = estado.tasaBCV.toFixed(2);
+            document.getElementById('txt-tasa-usdt').innerText = estado.tasaUSDT.toFixed(2);
+            document.getElementById('disponible').innerText = obtenerDisponibleUSD().toFixed(2);
+            
+            document.getElementById('presupuesto-diario').innerText = estado.presupuestoDiario.toFixed(2);
+            document.getElementById('presupuesto-mensual').innerText = estado.ingresosMensuales.toFixed(2);
+
+            const hoyISO = new Date().toISOString().split('T')[0];
+            let gastosHoyUSD = 0;
+            let gastosMesUSD = 0;
+
+            estado.historial.forEach(m => {
+                if(m.tipo === 'gasto') {
+                    if(m.fechaISO === hoyISO) gastosHoyUSD += m.montoUSD;
+                    gastosMesUSD += m.montoUSD;
+                }
+            });
+
+            let pctDiario = (gastosHoyUSD / estado.presupuestoDiario) * 100;
+            document.getElementById('porcentaje-consumo-diario').innerText = Math.min(pctDiario, 999).toFixed(0);
+            document.getElementById('barra-consumo-diario').style.width = Math.min(pctDiario, 100) + '%';
+
+            let pctMensual = (gastosMesUSD / estado.ingresosMensuales) * 100;
+            document.getElementById('porcentaje-consumo-mensual').innerText = Math.min(pctMensual, 999).toFixed(0);
+            document.getElementById('barra-consumo-mensual').style.width = Math.min(pctMensual, 100) + '%';
+
+            actualizarSelectCuentasFormulario();
+            cambioEstadoCategoriasIniciales();
+
+            const lista = document.getElementById('lista-movimientos');
+            lista.innerHTML = '';
+            
+            let historialFiltrado = estado.historial;
+            if(estado.filtroFecha) {
+                historialFiltrado = estado.historial.filter(m => m.fechaISO === estado.filtroFecha);
+            }
+
+            if (historialFiltrado.length === 0) {
+                lista.innerHTML = '<p class="text-sm text-gray-400 text-center py-2">No hay movimientos registrados para este criterio.</p>';
+            } else {
+                historialFiltrado.forEach((mov) => {
+                    const colorMonto = mov.tipo === 'gasto' ? 'text-gray-900' : 'text-green-600';
+                    const signo = mov.tipo === 'gasto' ? '-' : '+';
+                    
+                    let esDelDiaActual = (mov.fechaISO === hoyISO);
+                    let botonesEdicion = '';
+                    if(esDelDiaActual) {
+                        botonesEdicion = `
+                            <div class="mt-1 space-x-2 text-[10px]">
+                                <button onclick="editarMovimiento(${mov.id})" class="text-blue-600 hover:underline">Editar</button>
+                                <button onclick="eliminarMovimiento(${mov.id})" class="text-red-500 hover:underline">Eliminar</button>
+                            </div>
+                        `;
+                    }
+
+                    lista.innerHTML += `
+                        <div class="flex justify-between items-start text-sm py-2 border-b border-gray-50 last:border-0">
+                            <div>
+                                <span class="text-gray-700 font-medium block">${mov.concepto} <span class="text-xs text-gray-400">(${mov.cuentaNombre})</span></span>
+                                <span class="text-[10px] text-gray-400">${mov.fechaFormato} • ${mov.montoNativo.toFixed(2)} ${mov.moneda}</span>
+                                ${botonesEdicion}
+                            </div>
+                            <span class="font-medium ${colorMonto}">${signo}$${mov.montoUSD.toFixed(2)} USD</span>
+                        </div>
+                    `;
+                });
+            }
+            renderizarP2PHistorial();
+            renderizarTrades();
+        }
+
+        function cambioEstadoCategoriasIniciales() {
+            const selectCategoria = document.getElementById('categoria-movimiento');
+            if(selectCategoria.options.length === 0) {
+                const esIngreso = document.getElementById('tipo-movimiento').checked;
+                (esIngreso ? conceptosIngresosReales : conceptosGastosReales).forEach(cat => {
+                    selectCategoria.innerHTML += `<option value="${cat}">${cat}</option>`;
+                });
+            }
+        }
+
+        function procesarMovimiento() {
+            const esIngreso = document.getElementById('tipo-movimiento').checked;
+            const montoNativo = parseFloat(document.getElementById('monto-movimiento').value);
+            const moneda = document.getElementById('moneda-movimiento').value;
+            const categoria = document.getElementById('categoria-movimiento').value;
+            const cuentaId = document.getElementById('cuenta-movimiento').value;
+
+            if (isNaN(montoNativo) || montoNativo <= 0) return;
+
+            const cuentaObj = estado.cuentasLiquidas.find(c => c.id === cuentaId);
+            if(!cuentaObj) return;
+
+            let saldoCuentaUSD = convertirAUSDActual(cuentaObj.saldoNativo, cuentaObj.moneda);
+            let montoUSDRequerido = convertirAUSDActual(montoNativo, moneda);
+            let disponibleTotalUSD = obtenerDisponibleUSD();
+
+            if(!esIngreso) {
+                if(montoUSDRequerido > saldoCuentaUSD) {
+                    alert(`Fondos insuficientes en la cuenta seleccionada (${cuentaObj.nombre}). Saldo disponible en cuenta: ~$${saldoCuentaUSD.toFixed(2)} USD`);
+                    return;
+                }
+                if(montoUSDRequerido > disponibleTotalUSD) {
+                    alert(`El gasto supera el saldo total disponible en todas tus cuentas (~$${disponibleTotalUSD.toFixed(2)} USD).`);
+                    return;
+                }
+            }
+
+            const tasaBCVRef = estado.tasaBCV;
+            const tasaUSDTRef = estado.tasaUSDT;
+            const montoUSD = convertirAUSDHistorico(montoNativo, moneda, tasaBCVRef, tasaUSDTRef);
+
+            const hoyObj = new Date();
+            const fechaISO = hoyObj.toISOString().split('T')[0];
+            const fechaFormato = hoyObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+
+            if (esIngreso) {
+                if(moneda === 'BS') cuentaObj.saldoNativo += montoNativo;
+                else if(moneda === 'USDT') cuentaObj.saldoNativo += montoNativo;
+                else if(moneda === 'BCV') cuentaObj.saldoNativo += (montoNativo * estado.tasaBCV);
+                
+                estado.historial.unshift({ id: Date.now(), concepto: categoria, montoNativo, montoUSD, moneda, tipo: 'ingreso', cuentaNombre: cuentaObj.nombre, cuentaId: cuentaObj.id, fechaISO, fechaFormato, tasaBCVRef, tasaUSDTRef });
+            } else {
+                if(moneda === 'BS') cuentaObj.saldoNativo -= montoNativo;
+                else if(moneda === 'USDT') cuentaObj.saldoNativo -= montoNativo;
+                else if(moneda === 'BCV') cuentaObj.saldoNativo -= (montoNativo * estado.tasaBCV);
+
+                estado.gastosAcumuladosUSD += montoUSD;
+                estado.historial.unshift({ id: Date.now(), concepto: categoria, montoNativo, montoUSD, moneda, tipo: 'gasto', cuentaNombre: cuentaObj.nombre, cuentaId: cuentaObj.id, fechaISO, fechaFormato, tasaBCVRef, tasaUSDTRef });
+            }
+
+            guardarDatos();
+            actualizarUI();
+            document.getElementById('monto-movimiento').value = '';
+        }
+
+        function eliminarMovimiento(id) {
+            if(!confirm("¿Eliminar este movimiento del día actual? Se revertirá el saldo.")) return;
+            const idx = estado.historial.findIndex(m => m.id === id);
+            if(idx === -1) return;
+            const mov = estado.historial[idx];
+
+            const cuentaObj = estado.cuentasLiquidas.find(c => c.id === mov.cuentaId);
+            if(cuentaObj) {
+                if(mov.tipo === 'ingreso') {
+                    if(mov.moneda === 'BS' || mov.moneda === 'USDT') cuentaObj.saldoNativo -= mov.montoNativo;
+                    else if(mov.moneda === 'BCV') cuentaObj.saldoNativo -= (mov.montoNativo * mov.tasaBCVRef);
+                } else {
+                    if(mov.moneda === 'BS' || mov.moneda === 'USDT') cuentaObj.saldoNativo += mov.montoNativo;
+                    else if(mov.moneda === 'BCV') cuentaObj.saldoNativo += (mov.montoNativo * mov.tasaBCVRef);
+                    estado.gastosAcumuladosUSD -= mov.montoUSD;
+                }
+            }
+
+            estado.historial.splice(idx, 1);
+            guardarDatos();
+            actualizarUI();
+        }
+
+        function editarMovimiento(id) {
+            const mov = estado.historial.find(m => m.id === id);
+            if(!mov) return;
+            let nuevoMonto = prompt(`Modificar monto para "${mov.concepto}":`, mov.montoNativo);
+            if(nuevoMonto === null || isNaN(nuevoMonto)) return;
+            nuevoMonto = parseFloat(nuevoMonto);
+            if(nuevoMonto <= 0) return;
+
+            const cuentaObj = estado.cuentasLiquidas.find(c => c.id === mov.cuentaId);
+            if(cuentaObj) {
+                if(mov.tipo === 'ingreso') {
+                    if(mov.moneda === 'BS' || mov.moneda === 'USDT') cuentaObj.saldoNativo -= mov.montoNativo;
+                    else if(mov.moneda === 'BCV') cuentaObj.saldoNativo -= (mov.montoNativo * mov.tasaBCVRef);
+                } else {
+                    if(mov.moneda === 'BS' || mov.moneda === 'USDT') cuentaObj.saldoNativo += mov.montoNativo;
+                    else if(mov.moneda === 'BCV') cuentaObj.saldoNativo += (mov.montoNativo * mov.tasaBCVRef);
+                    estado.gastosAcumuladosUSD -= mov.montoUSD;
+                }
+            }
+
+            mov.montoNativo = nuevoMonto;
+            mov.montoUSD = convertirAUSDHistorico(nuevoMonto, mov.moneda, mov.tasaBCVRef, mov.tasaUSDTRef);
+
+            if(cuentaObj) {
+                if(mov.tipo === 'ingreso') {
+                    if(mov.moneda === 'BS' || mov.moneda === 'USDT') cuentaObj.saldoNativo += nuevoMonto;
+                    else if(mov.moneda === 'BCV') cuentaObj.saldoNativo += (nuevoMonto * mov.tasaBCVRef);
+                } else {
+                    if(mov.moneda === 'BS' || mov.moneda === 'USDT') cuentaObj.saldoNativo -= nuevoMonto;
+                    else if(mov.moneda === 'BCV') cuentaObj.saldoNativo -= (nuevoMonto * mov.tasaBCVRef);
+                    estado.gastosAcumuladosUSD += mov.montoUSD;
+                }
+            }
+
+            guardarDatos();
+            actualizarUI();
+            alert("Movimiento actualizado con éxito.");
+        }
+
+        // RENDERIZADOR DE GRÁFICAS LINEALES SVG
+        function renderizarGraficasLineales() {
+            // Ordenar historial cronológicamente para las gráficas
+            let historialOrdenado = [...estado.historial].sort((a,b) => new Date(a.fechaISO) - new Date(b.fechaISO));
+            
+            // Agrupar por fecha
+            let fechasMap = {};
+            historialOrdenado.forEach(m => {
+                if(!fechasMap[m.fechaISO]) fechasMap[m.fechaISO] = { ingresos: 0, gastos: 0, fechaFormato: m.fechaFormato };
+                if(m.tipo === 'ingreso') fechasMap[m.fechaISO].ingresos += m.montoUSD;
+                else fechasMap[m.fechaISO].gastos += m.montoUSD;
+            });
+
+            let fechasKeys = Object.keys(fechasMap);
+            // Si hay pocos puntos, agregamos un punto inicial base para que la línea luzca bien
+            if(fechasKeys.length === 0) {
+                let hoyStr = new Date().toISOString().split('T')[0];
+                fechasMap[hoyStr] = { ingresos: 0, gastos: 0, fechaFormato: "Hoy" };
+                fechasKeys = [hoyStr];
+            }
+
+            // --- GRÁFICO 1: INGRESOS ACUMULADOS VS ROI% ---
+            let svgRoi = document.getElementById('grafico-roi');
+            let acumuladoIngreso = 0;
+            let puntosRoiIng = [];
+            let puntosRoiPct = [];
+
+            fechasKeys.forEach(f => {
+                acumuladoIngreso += fechasMap[f].ingresos;
+                let roiPct = (acumuladoIngreso / estado.ingresosMensuales) * 100;
+                puntosRoiIng.push(acumuladoIngreso);
+                puntosRoiPct.push(roiPct);
+            });
+
+            svgRoi.innerHTML = generarSVGLineas(fechasKeys.map(f => fechasMap[f].fechaFormato), puntosRoiIng, puntosRoiPct, "Ingresos ($)", "ROI (%)", "#10B981", "#3B82F6");
+
+            // --- GRÁFICO 2: GASTOS TOTALES VS PRESUPUESTO ---
+            let svgGastos = document.getElementById('grafico-gastos');
+            let acumuladoGasto = 0;
+            let puntosGastos = [];
+            let puntosPresupuestoMeta = [];
+
+            fechasKeys.forEach((f, idx) => {
+                acumuladoGasto += fechasMap[f].gastos;
+                puntosGastos.push(acumuladoGasto);
+                // Meta acumulada lineal (ej. $30 diarios o proporcional)
+                puntosPresupuestoMeta.push(estado.presupuestoDiario * (idx + 1));
+            });
+
+            svgGastos.innerHTML = generarSVGLineas(fechasKeys.map(f => fechasMap[f].fechaFormato), puntosGastos, puntosPresupuestoMeta, "Gastos ($)", "Meta Presup.", "#EF4444", "#6366F1");
+        }
+
+        function generarSVGLineas(labels, serie1, serie2, label1, label2, color1, color2) {
+            let width = 320, height = 160;
+            let padding = 25;
+            let chartW = width - padding * 2;
+            let chartH = height - padding * 2;
+
+            let allVals = [...serie1, ...serie2, 10]; // Asegurar mínimo para escala
+            let maxVal = Math.max(...allVals) * 1.1; // Margen superior
+
+            let stepX = labels.length > 1 ? chartW / (labels.length - 1) : chartW;
+
+            let coords1 = serie1.map((v, i) => {
+                let x = padding + (labels.length > 1 ? i * stepX : chartW / 2);
+                let y = height - padding - (v / maxVal) * chartH;
+                return {x, y, val: v};
+            });
+
+            let coords2 = serie2.map((v, i) => {
+                let x = padding + (labels.length > 1 ? i * stepX : chartW / 2);
+                let y = height - padding - (v / maxVal) * chartH;
+                return {x, y, val: v};
+            });
+
+            let path1 = coords1.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
+            let path2 = coords2.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
+
+            let svgContent = `
+                <!-- Ejes y Líneas de guía -->
+                <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#E5E7EB" stroke-width="1"/>
+                <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#E5E7EB" stroke-width="1"/>
+            `;
+
+            // Línea 2
+            if(coords2.length > 0) {
+                svgContent += `<path d="${path2}" fill="none" stroke="${color2}" stroke-width="2" stroke-dasharray="3,3"/>`;
+            }
+            // Línea 1
+            if(coords1.length > 0) {
+                svgContent += `<path d="${path1}" fill="none" stroke="${color1}" stroke-width="2.5"/>`;
+            }
+
+            // Puntos y etiquetas
+            coords1.forEach((c, i) => {
+                svgContent += `<circle cx="${c.x}" cy="${c.y}" r="3.5" fill="${color1}"/>`;
+                if(coords2[i]) {
+                    svgContent += `<circle cx="${coords2[i].x}" cy="${coords2[i].y}" r="3" fill="${color2}"/>`;
+                }
+            });
+
+            // Leyenda inferior
+            svgContent += `
+                <text x="${padding}" y="${height - 5}" font-size="9" fill="${color1}" font-weight="bold">■ ${label1}</text>
+                <text x="${padding + 90}" y="${height - 5}" font-size="9" fill="${color2}" font-weight="bold">-- ${label2}</text>
+            `;
+
+            return svgContent;
+        }
+
+        function descargarExcelMovimientos() {
+            let csvContent = "data:text/csv;charset=utf-8,Fecha,Tipo,Concepto,Cuenta,Monto Nativo,Moneda,Monto USD\r\n";
+            estado.historial.forEach(m => {
+                let row = `${m.fechaISO},${m.tipo},"${m.concepto}","${m.cuentaNombre}",${m.montoNativo},${m.moneda},${m.montoUSD.toFixed(2)}`;
+                csvContent += row + "\r\n";
+            });
+            descargarCSV(csvContent, "movimientos_financieros.csv");
+        }
+
+        function descargarExcelP2P() {
+            let csvContent = "data:text/csv;charset=utf-8,Fecha,Descripcion,Detalle,Monto USD Eq.\r\n";
+            estado.historialP2P.forEach(p => {
+                let row = `${p.fechaISO},"${p.descripcion}","${p.detalle}",${p.montoUSD.toFixed(2)}`;
+                csvContent += row + "\r\n";
+            });
+            descargarCSV(csvContent, "movimientos_p2p_bancos.csv");
+        }
+
+        function descargarExcelTrading() {
+            let csvContent = "data:text/csv;charset=utf-8,Fecha,Cripto,Tiempo,Cuenta Destino,Ganancia USDT\r\n";
+            estado.historialTrades.forEach(t => {
+                let row = `${t.fechaISO},${t.crypto},"${t.tiempo}","${t.cuentaNombre}",${t.montoGanancia}`;
+                csvContent += row + "\r\n";
+            });
+            descargarCSV(csvContent, "bitacora_trading.csv");
+        }
+
+        function descargarExcelAnalitica() {
+            let csvContent = "data:text/csv;charset=utf-8,Modulo,Concepto o Detalle,Monto USD\r\n";
+            estado.historial.forEach(m => {
+                csvContent += `Flujo,${m.tipo} - ${m.concepto},${m.montoUSD.toFixed(2)}\r\n`;
+            });
+            estado.historialP2P.forEach(p => {
+                csvContent += `P2P-Bancos,${p.descripcion},${p.montoUSD.toFixed(2)}\r\n`;
+            });
+            estado.historialTrades.forEach(t => {
+                csvContent += `Trading,${t.crypto} (${t.tiempo}),${t.montoGanancia}\r\n`;
+            });
+            descargarCSV(csvContent, "analitica_financiera_completa.csv");
+        }
+
+        function descargarCSV(contenido, nombreArchivo) {
+            const encodedUri = encodeURI(contenido);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", nombreArchivo);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function ejecutarP2P() {
+            const tipo = document.getElementById('p2p-tipo').value;
+            const montoUSDT = parseFloat(document.getElementById('p2p-monto').value);
+            const idBinance = document.getElementById('p2p-cuenta-binance').value;
+            const idBanco = document.getElementById('p2p-cuenta-banco').value;
+
+            if(isNaN(montoUSDT) || montoUSDT <= 0) return;
+
+            const cuentaBinance = estado.cuentasLiquidas.find(c => c.id === idBinance);
+            const cuentaBanco = estado.cuentasLiquidas.find(c => c.id === idBanco);
+            if(!cuentaBinance || !cuentaBanco) return;
+
+            const hoyObj = new Date();
+            const fechaISO = hoyObj.toISOString().split('T')[0];
+            const fechaFormato = hoyObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+
+            if(tipo === 'venta') {
+                const comisionUSDT = 0.05;
+                const usdtNeto = montoUSDT - comisionUSDT;
+                if(cuentaBinance.saldoNativo < montoUSDT) {
+                    alert("Saldo insuficiente en Binance para cubrir el monto y la comisión de 0.05 USDT");
+                    return;
+                }
+                cuentaBinance.saldoNativo -= montoUSDT;
+                const bsACreditar = usdtNeto * estado.tasaUSDT;
+                cuentaBanco.saldoNativo += bsACreditar;
+
+                estado.historialP2P.unshift({
+                    id: Date.now(),
+                    descripcion: `Venta P2P (${montoUSDT} USDT) → ${cuentaBanco.nombre}`,
+                    detalle: `Comisión Taker: ${comisionUSDT} USDT`,
+                    montoUSD: convertirAUSDActual(bsACreditar, 'BS'),
+                    fechaISO, fechaFormato
+                });
+            } else {
+                const bsNecesarios = montoUSDT * estado.tasaUSDT;
+                let eqBancoUSD = convertirAUSDActual(cuentaBanco.saldoNativo, 'BS');
+                if(eqBancoUSD < convertirAUSDActual(bsNecesarios, 'BS')) {
+                    alert("Saldo insuficiente en el banco local para esta compra USDT.");
+                    return;
+                }
+                cuentaBanco.saldoNativo -= bsNecesarios;
+                cuentaBinance.saldoNativo += montoUSDT;
+
+                estado.historialP2P.unshift({
+                    id: Date.now(),
+                    descripcion: `Compra P2P (${montoUSDT} USDT) desde ${cuentaBanco.nombre}`,
+                    detalle: `Sin comisión de compra`,
+                    montoUSD: convertirAUSDActual(bsNecesarios, 'BS'),
+                    fechaISO, fechaFormato
+                });
+            }
+
+            guardarDatos();
+            actualizarUI();
+            document.getElementById('p2p-monto').value = '';
+            alert("¡Operación P2P procesada con éxito!");
+        }
+
+        function eliminarP2P(id) {
+            if(!confirm("¿Eliminar este registro P2P / Banco?")) return;
+            const idx = estado.historialP2P.findIndex(p => p.id === id);
+            if(idx !== -1) {
+                estado.historialP2P.splice(idx, 1);
+                guardarDatos();
+                actualizarUI();
+            }
+        }
+
+        function ejecutarTransferenciaBancaria() {
+            const montoBs = parseFloat(document.getElementById('banco-monto-bs').value);
+            const idOrigen = document.getElementById('banco-origen').value;
+            const idDestino = document.getElementById('banco-destino').value;
+
+            if(isNaN(montoBs) || montoBs <= 0) return;
+            if(idOrigen === idDestino) {
+                alert("El banco origen y destino deben ser diferentes.");
+                return;
+            }
+
+            const cOrigen = estado.cuentasLiquidas.find(c => c.id === idOrigen);
+            const cDestino = estado.cuentasLiquidas.find(c => c.id === idDestino);
+
+            if(cOrigen.saldoNativo < montoBs) {
+                alert("Fondos insuficientes en el banco origen.");
+                return;
+            }
+
+            cOrigen.saldoNativo -= montoBs;
+            cDestino.saldoNativo += montoBs;
+
+            const hoyObj = new Date();
+            const fechaISO = hoyObj.toISOString().split('T')[0];
+            const fechaFormato = hoyObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+
+            estado.historialP2P.unshift({
+                id: Date.now(),
+                descripcion: `Transferencia Bancaria: ${cOrigen.nombre} → ${cDestino.nombre}`,
+                detalle: `Monto: Bs ${montoBs.toFixed(2)} (Sin comisión)`,
+                montoUSD: convertirAUSDActual(montoBs, 'BS'),
+                fechaISO, fechaFormato
+            });
+
+            guardarDatos();
+            actualizarUI();
+            document.getElementById('banco-monto-bs').value = '';
+            alert("¡Transferencia entre bancos realizada con éxito!");
+        }
+
+        function renderizarP2PHistorial() {
+            const listaP2P = document.getElementById('lista-p2p');
+            listaP2P.innerHTML = '';
+            
+            let p2pFiltrado = estado.historialP2P;
+            if(estado.filtroFecha) {
+                p2pFiltrado = estado.historialP2P.filter(p => p.fechaISO === estado.filtroFecha);
+            }
+
+            const hoyISO = new Date().toISOString().split('T')[0];
+
+            if(p2pFiltrado.length === 0) {
+                listaP2P.innerHTML = '<p class="text-sm text-gray-400 text-center py-2">No hay movimientos P2P o bancarios registrados.</p>';
+                return;
+            }
+            p2pFiltrado.forEach(p => {
+                let botonesEdicion = (p.fechaISO === hoyISO) ? `<button onclick="eliminarP2P(${p.id})" class="text-red-500 hover:underline text-[10px] ml-2">Eliminar</button>` : '';
+                
+                listaP2P.innerHTML += `
+                    <div class="flex justify-between items-center text-sm py-2 border-b border-gray-50">
+                        <div>
+                            <span class="text-gray-800 font-medium block">${p.descripcion} ${botonesEdicion}</span>
+                            <span class="text-[10px] text-gray-400">${p.fechaFormato} • ${p.detalle}</span>
+                        </div>
+                        <span class="font-medium text-blue-600">~$${p.montoUSD.toFixed(2)} USD</span>
+                    </div>`;
+            });
+        }
+
+        function registrarTrade() {
+            const crypto = document.getElementById('trade-crypto').value;
+            const montoGanancia = parseFloat(document.getElementById('trade-monto').value);
+            const tiempo = document.getElementById('trade-tiempo').value;
+            const cuentaId = document.getElementById('trade-cuenta-destino').value;
+
+            if (isNaN(montoGanancia)) return;
+            const cuentaObj = estado.cuentasLiquidas.find(c => c.id === cuentaId);
+            if(cuentaObj) cuentaObj.saldoNativo += montoGanancia;
+
+            const hoyObj = new Date();
+            const fechaISO = hoyObj.toISOString().split('T')[0];
+            const fechaFormato = hoyObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+
+            const tradeId = Date.now();
+            estado.historialTrades.unshift({ id: tradeId, crypto, montoGanancia, tiempo, cuentaNombre: cuentaObj ? cuentaObj.nombre : "Binance", cuentaId: cuentaObj ? cuentaObj.id : "", fechaISO, fechaFormato });
+
+            const tasaBCVRef = estado.tasaBCV;
+            const tasaUSDTRef = estado.tasaUSDT;
+            let montoUSD = convertirAUSDHistorico(montoGanancia, 'USDT', tasaBCVRef, tasaUSDTRef);
+
+            estado.historial.unshift({
+                id: tradeId,
+                concepto: 'Trading',
+                montoNativo: montoGanancia,
+                montoUSD: montoUSD,
+                moneda: 'USDT',
+                tipo: 'ingreso',
+                cuentaNombre: cuentaObj ? cuentaObj.nombre : "Binance",
+                cuentaId: cuentaObj ? cuentaObj.id : "",
+                fechaISO, fechaFormato, tasaBCVRef, tasaUSDTRef
+            });
+
+            guardarDatos();
+            actualizarUI();
+            document.getElementById('trade-monto').value = '';
+            alert("¡Trade registrado, acreditado y sumado al flujo!");
+        }
+
+        function eliminarTrade(id) {
+            if(!confirm("¿Eliminar este trade? Se descontará de la cuenta y del historial.")) return;
+            const idxTrade = estado.historialTrades.findIndex(t => t.id === id);
+            if(idxTrade !== -1) {
+                const t = estado.historialTrades[idxTrade];
+                const cuentaObj = estado.cuentasLiquidas.find(c => c.id === t.cuentaId);
+                if(cuentaObj) cuentaObj.saldoNativo -= t.montoGanancia;
+                estado.historialTrades.splice(idxTrade, 1);
+            }
+            const idxFlujo = estado.historial.findIndex(m => m.id === id);
+            if(idxFlujo !== -1) estado.historial.splice(idxFlujo, 1);
+
+            guardarDatos();
+            actualizarUI();
+        }
+
+        function renderizarTrades() {
+            const listaTrades = document.getElementById('lista-trades');
+            listaTrades.innerHTML = '';
+
+            let tradesFiltrados = estado.historialTrades;
+            if(estado.filtroFecha) {
+                tradesFiltrados = estado.historialTrades.filter(t => t.fechaISO === estado.filtroFecha);
+            }
+
+            let totalGananciaUSDT = tradesFiltrados.reduce((sum, t) => sum + t.montoGanancia, 0);
+            document.getElementById('trading-total-ganancia').innerText = totalGananciaUSDT.toFixed(2);
+            document.getElementById('trading-total-ops').innerText = tradesFiltrados.length;
+
+            const hoyISO = new Date().toISOString().split('T')[0];
+
+            if(tradesFiltrados.length === 0) {
+                listaTrades.innerHTML = '<p class="text-sm text-gray-400 text-center py-2">Sin trades registrados.</p>';
+                return;
+            }
+
+            tradesFiltrados.forEach(t => {
+                let botonesEdicion = (t.fechaISO === hoyISO) ? `<button onclick="eliminarTrade(${t.id})" class="text-red-500 hover:underline text-[10px] ml-2">Eliminar</button>` : '';
+                
+                listaTrades.innerHTML += `
+                    <div class="flex justify-between items-center text-sm py-2 border-b border-gray-50">
+                        <div>
+                            <span class="text-gray-800 font-medium block">${t.crypto} <span class="text-xs text-gray-400">(${t.tiempo})</span> ${botonesEdicion}</span>
+                            <span class="text-[10px] text-gray-400">${t.fechaFormato} • ${t.cuentaNombre}</span>
+                        </div>
+                        <span class="font-bold text-green-600">+$${t.montoGanancia.toFixed(2)} USDT</span>
+                    </div>`;
+            });
+        }
+
+        function generarAnaliticaAvanzada() {
+            let ingresosTotal = 0;
+            let gastosTotal = 0;
+
+            let ingresosMap = {};
+            let gastosMap = {};
+            let diasMap = {};
+
+            let datosAnalisis = estado.historial;
+            if(estado.filtroFecha) {
+                datosAnalisis = estado.historial.filter(m => m.fechaISO === estado.filtroFecha);
+            }
+
+            datosAnalisis.forEach(m => {
+                if(!diasMap[m.fechaFormato]) diasMap[m.fechaFormato] = { ingresos: 0, gastos: 0 };
+                
+                if(m.tipo === 'ingreso') {
+                    ingresosTotal += m.montoUSD;
+                    ingresosMap[m.concepto] = (ingresosMap[m.concepto] || 0) + m.montoUSD;
+                    diasMap[m.fechaFormato].ingresos += m.montoUSD;
+                } else {
+                    gastosTotal += m.montoUSD;
+                    gastosMap[m.concepto] = (gastosMap[m.concepto] || 0) + m.montoUSD;
+                    diasMap[m.fechaFormato].gastos += m.montoUSD;
+                }
+            });
+
+            let containerIng = document.getElementById('analitica-ingresos');
+            containerIng.innerHTML = '';
+            if(Object.keys(ingresosMap).length === 0) {
+                containerIng.innerHTML = '<p class="text-xs text-gray-400">Sin ingresos registrados.</p>';
+            } else {
+                for(let cat in ingresosMap) {
+                    let pct = ingresosTotal > 0 ? (ingresosMap[cat] / ingresosTotal) * 100 : 0;
+                    containerIng.innerHTML += `
+                        <div class="flex justify-between items-center py-1 border-b border-gray-50">
+                            <span class="text-gray-700">${cat}</span>
+                            <div class="text-right">
+                                <span class="font-bold text-green-600">+$${ingresosMap[cat].toFixed(2)}</span>
+                                <span class="text-xs text-gray-400 ml-2">(${pct.toFixed(1)}%)</span>
+                            </div>
+                        </div>`;
+                }
+            }
+
+            let containerGas = document.getElementById('analitica-gastos');
+            containerGas.innerHTML = '';
+            if(Object.keys(gastosMap).length === 0) {
+                containerGas.innerHTML = '<p class="text-xs text-gray-400">Sin gastos registrados.</p>';
+            } else {
+                for(let cat in gastosMap) {
+                    let pct = gastosTotal > 0 ? (gastosMap[cat] / gastosTotal) * 100 : 0;
+                    containerGas.innerHTML += `
+                        <div class="flex justify-between items-center py-1 border-b border-gray-50">
+                            <span class="text-gray-700">${cat}</span>
+                            <div class="text-right">
+                                <span class="font-bold text-gray-900">-$${gastosMap[cat].toFixed(2)}</span>
+                                <span class="text-xs text-gray-400 ml-2">(${pct.toFixed(1)}%)</span>
+                            </div>
+                        </div>`;
+                }
+            }
+
+            let containerNeto = document.getElementById('analitica-neto');
+            containerNeto.innerHTML = '';
+            if(Object.keys(diasMap).length === 0) {
+                containerNeto.innerHTML = '<p class="text-xs text-gray-400">No hay actividad diaria para calcular resultado neto.</p>';
+            } else {
+                for(let dia in diasMap) {
+                    let ing = diasMap[dia].ingresos;
+                    let gas = diasMap[dia].gastos;
+                    let netoDia = ing - gas;
+                    let colorNeto = netoDia >= 0 ? 'text-green-600' : 'text-red-500';
+                    let signoNeto = netoDia >= 0 ? '+' : '';
+                    let sobregiro = gas > estado.presupuestoDiario ? gas - estado.presupuestoDiario : 0;
+
+                    containerNeto.innerHTML += `
+                        <div class="bg-gray-50 p-3 rounded text-xs space-y-1">
+                            <div class="flex justify-between font-bold text-gray-800">
+                                <span>Fecha: ${dia}</span>
+                                <span class="${colorNeto}">Balance Neto: ${signoNeto}$${netoDia.toFixed(2)} USD</span>
+                            </div>
+                            <div class="flex justify-between text-gray-500">
+                                <span>Ingresos: +$${ing.toFixed(2)} | Gastos: -$${gas.toFixed(2)}</span>
+                                ${sobregiro > 0 ? `<span class="text-red-500 font-semibold">Sobregiro diario: -$${sobregiro.toFixed(2)}</span>` : '<span class="text-green-600">En presupuesto diario</span>'}
+                            </div>
+                        </div>`;
+                }
+            }
+        }
+
+        function abrirModalCuentas() {
+            const listaCuentas = document.getElementById('lista-cuentas');
+            const listaDeudas = document.getElementById('lista-deudas');
+            listaCuentas.innerHTML = ''; listaDeudas.innerHTML = '';
+
+            estado.cuentasLiquidas.forEach(c => {
+                let eqUSD = convertirAUSDActual(c.saldoNativo, c.moneda);
+                listaCuentas.innerHTML += `
+                    <div class="flex justify-between text-sm py-1 border-b border-gray-50">
+                        <div>
+                            <span class="text-gray-700 block">${c.nombre}</span>
+                            <span class="text-[10px] text-gray-400">${c.saldoNativo.toFixed(2)} ${c.moneda}</span>
+                        </div>
+                        <span class="font-medium text-gray-900">~$${eqUSD.toFixed(2)} USD</span>
+                    </div>`;
+            });
+
+            let totalDeudas = 0;
+            estado.deudas.forEach(d => {
+                totalDeudas += d.montoUSD;
+                listaDeudas.innerHTML += `<div class="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0"><span class="text-gray-600">${d.nombre}</span><span class="font-medium text-red-500">-$${d.montoUSD.toFixed(2)} USD</span></div>`;
+            });
+            document.getElementById('total-deudas-modal').innerText = `$${totalDeudas.toFixed(2)}`;
+            document.getElementById('modal-cuentas').classList.remove('hidden');
+        }
+
+        function cerrarModalCuentas() { document.getElementById('modal-cuentas').classList.add('hidden'); }
+
+        actualizarUI();
+    </script>
+</body>
+</html>
