@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <link rel="icon" href="https://joseevasquez3-lgtm.github.io/mi-pwa/logo.png" type="image/png">
-<link rel="apple-touch-icon" href="https://joseevasquez3-lgtm.github.io/mi-pwa/logo.png">
+    <link rel="apple-touch-icon" href="https://joseevasquez3-lgtm.github.io/mi-pwa/logo.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sandbox - Control Financiero v13 (Definitivo con Gráficas)</title>
@@ -306,14 +306,12 @@
         </div>
     </div>
 
-    <!-- VISTA NUEVA / ACTUALIZADA: ANÁLISIS % Y BALANCE -->
+    <!-- VISTA NUEVA: ANÁLISIS % Y BALANCE -->
     <div id="vista-analitica" class="hidden space-y-4">
-        
-        <!-- Control de Periodo y Neto General -->
         <div class="card p-4 bg-gray-900 text-white">
             <div class="flex justify-between items-center mb-3">
                 <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Neto General del Periodo</span>
-                <input type="month" id="filtro-mes-analisis" value="2026-08" onchange="actualizarAnalisisPeriodo()" class="text-xs bg-gray-800 border border-gray-700 text-white rounded px-2 py-1 focus:outline-none">
+                <input type="month" id="filtro-mes-analisis" value="2026-08" onchange="actualizarVistaAnalitica()" class="text-xs bg-gray-800 border border-gray-700 text-white rounded px-2 py-1 focus:outline-none">
             </div>
             <div class="flex justify-between items-end">
                 <div>
@@ -324,38 +322,28 @@
             </div>
         </div>
 
-        <!-- Desglose de Ingresos -->
         <div class="card p-5">
             <div class="flex justify-between items-center border-b pb-2 mb-3">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Desglose de Ingresos (%)</h2>
                 <span class="text-xs font-bold text-green-600" id="total-ingresos-periodo">+$0.00</span>
             </div>
-            <div id="lista-desglose-ingresos" class="space-y-3">
-                <!-- Inyectado por JS -->
-            </div>
+            <div id="lista-desglose-ingresos" class="space-y-3"></div>
         </div>
 
-        <!-- Desglose de Gastos -->
         <div class="card p-5">
             <div class="flex justify-between items-center border-b pb-2 mb-3">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Desglose de Gastos (%)</h2>
                 <span class="text-xs font-bold text-red-600" id="total-gastos-periodo">-$0.00</span>
             </div>
-            <div id="lista-desglose-gastos" class="space-y-3">
-                <!-- Inyectado por JS -->
-            </div>
+            <div id="lista-desglose-gastos" class="space-y-3"></div>
         </div>
 
-        <!-- Balance Diario (Con Scroll y límite visual de 5 días) -->
         <div class="card p-5">
             <div class="flex justify-between items-center border-b pb-2 mb-3">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Balance Diario</h2>
                 <span class="text-[10px] text-gray-400">Desliza para ver más días ↕️</span>
             </div>
-            <!-- Contenedor con altura fija y scroll vertical para aislar los 5 días principales -->
-            <div id="lista-balance-diario" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                <!-- Inyectado por JS ordenado del más reciente al más antiguo -->
-            </div>
+            <div id="lista-balance-diario" class="space-y-3 max-h-[380px] overflow-y-auto pr-1"></div>
         </div>
     </div>
 
@@ -390,13 +378,13 @@
         ];
 
         let estadoPorDefecto = {
-            tasaBCV: 748.79, // Actualizada
+            tasaBCV: 748.79,
             tasaUSDT: 840.00,
             ingresosMensuales: 900.00,
             presupuestoDiario: 30.00,
             gastosAcumuladosUSD: 0,
             cuentasLiquidas: [
-                { id: "banesco", nombre: "Banesco", saldoNativo: 30.53 + 33.35, moneda: "BS" }, // Sumados 33.35 Bs -> 63.88 Bs
+                { id: "banesco", nombre: "Banesco", saldoNativo: 63.88, moneda: "BS" },
                 { id: "bdv", nombre: "Venezuela", saldoNativo: 0.00, moneda: "BS" },
                 { id: "binance", nombre: "Binance", saldoNativo: 135.97, moneda: "USDT" }
             ],
@@ -419,7 +407,6 @@
         let estado = JSON.parse(localStorage.getItem('sandbox_estado_v13')) || estadoPorDefecto;
         estado.cuentasLiquidas.forEach((c, idx) => { if(!c.id) c.id = 'cuenta_' + idx; });
         if(estado.filtroFecha === undefined) estado.filtroFecha = null;
-        // Forzar actualización de tasa si venía de versión anterior con 740.00
         if(estado.tasaBCV === 740.00) estado.tasaBCV = 748.79;
 
         function guardarDatos() {
@@ -444,7 +431,7 @@
             if(vista === 'transferencias') actualizarSelectsP2P();
             if(vista === 'trading') actualizarSelectsTrading();
             if(vista === 'graficas') renderizarGraficasLineales();
-            if(vista === 'analitica') generarAnaliticaAvanzada();
+            if(vista === 'analitica') actualizarVistaAnalitica();
         }
 
         function cambiarSubTabP2P(sub) {
@@ -787,12 +774,8 @@
             alert("Movimiento actualizado con éxito.");
         }
 
-        // RENDERIZADOR DE GRÁFICAS LINEALES SVG
         function renderizarGraficasLineales() {
-            // Ordenar historial cronológicamente para las gráficas
             let historialOrdenado = [...estado.historial].sort((a,b) => new Date(a.fechaISO) - new Date(b.fechaISO));
-            
-            // Agrupar por fecha
             let fechasMap = {};
             historialOrdenado.forEach(m => {
                 if(!fechasMap[m.fechaISO]) fechasMap[m.fechaISO] = { ingresos: 0, gastos: 0, fechaFormato: m.fechaFormato };
@@ -801,14 +784,12 @@
             });
 
             let fechasKeys = Object.keys(fechasMap);
-            // Si hay pocos puntos, agregamos un punto inicial base para que la línea luzca bien
             if(fechasKeys.length === 0) {
                 let hoyStr = new Date().toISOString().split('T')[0];
                 fechasMap[hoyStr] = { ingresos: 0, gastos: 0, fechaFormato: "Hoy" };
                 fechasKeys = [hoyStr];
             }
 
-            // --- GRÁFICO 1: INGRESOS ACUMULADOS VS ROI% ---
             let svgRoi = document.getElementById('grafico-roi');
             let acumuladoIngreso = 0;
             let puntosRoiIng = [];
@@ -823,7 +804,6 @@
 
             svgRoi.innerHTML = generarSVGLineas(fechasKeys.map(f => fechasMap[f].fechaFormato), puntosRoiIng, puntosRoiPct, "Ingresos ($)", "ROI (%)", "#10B981", "#3B82F6");
 
-            // --- GRÁFICO 2: GASTOS TOTALES VS PRESUPUESTO ---
             let svgGastos = document.getElementById('grafico-gastos');
             let acumuladoGasto = 0;
             let puntosGastos = [];
@@ -832,7 +812,6 @@
             fechasKeys.forEach((f, idx) => {
                 acumuladoGasto += fechasMap[f].gastos;
                 puntosGastos.push(acumuladoGasto);
-                // Meta acumulada lineal (ej. $30 diarios o proporcional)
                 puntosPresupuestoMeta.push(estado.presupuestoDiario * (idx + 1));
             });
 
@@ -845,9 +824,8 @@
             let chartW = width - padding * 2;
             let chartH = height - padding * 2;
 
-            let allVals = [...serie1, ...serie2, 10]; // Asegurar mínimo para escala
-            let maxVal = Math.max(...allVals) * 1.1; // Margen superior
-
+            let allVals = [...serie1, ...serie2, 10];
+            let maxVal = Math.max(...allVals) * 1.1;
             let stepX = labels.length > 1 ? chartW / (labels.length - 1) : chartW;
 
             let coords1 = serie1.map((v, i) => {
@@ -866,29 +844,18 @@
             let path2 = coords2.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
 
             let svgContent = `
-                <!-- Ejes y Líneas de guía -->
                 <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#E5E7EB" stroke-width="1"/>
                 <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#E5E7EB" stroke-width="1"/>
             `;
 
-            // Línea 2
-            if(coords2.length > 0) {
-                svgContent += `<path d="${path2}" fill="none" stroke="${color2}" stroke-width="2" stroke-dasharray="3,3"/>`;
-            }
-            // Línea 1
-            if(coords1.length > 0) {
-                svgContent += `<path d="${path1}" fill="none" stroke="${color1}" stroke-width="2.5"/>`;
-            }
+            if(coords2.length > 0) svgContent += `<path d="${path2}" fill="none" stroke="${color2}" stroke-width="2" stroke-dasharray="3,3"/>`;
+            if(coords1.length > 0) svgContent += `<path d="${path1}" fill="none" stroke="${color1}" stroke-width="2.5"/>`;
 
-            // Puntos y etiquetas
             coords1.forEach((c, i) => {
                 svgContent += `<circle cx="${c.x}" cy="${c.y}" r="3.5" fill="${color1}"/>`;
-                if(coords2[i]) {
-                    svgContent += `<circle cx="${coords2[i].x}" cy="${coords2[i].y}" r="3" fill="${color2}"/>`;
-                }
+                if(coords2[i]) svgContent += `<circle cx="${coords2[i].x}" cy="${coords2[i].y}" r="3" fill="${color2}"/>`;
             });
 
-            // Leyenda inferior
             svgContent += `
                 <text x="${padding}" y="${height - 5}" font-size="9" fill="${color1}" font-weight="bold">■ ${label1}</text>
                 <text x="${padding + 90}" y="${height - 5}" font-size="9" fill="${color2}" font-weight="bold">-- ${label2}</text>
@@ -900,8 +867,7 @@
         function descargarExcelMovimientos() {
             let csvContent = "data:text/csv;charset=utf-8,Fecha,Tipo,Concepto,Cuenta,Monto Nativo,Moneda,Monto USD\r\n";
             estado.historial.forEach(m => {
-                let row = `${m.fechaISO},${m.tipo},"${m.concepto}","${m.cuentaNombre}",${m.montoNativo},${m.moneda},${m.montoUSD.toFixed(2)}`;
-                csvContent += row + "\r\n";
+                csvContent += `${m.fechaISO},${m.tipo},"${m.concepto}","${m.cuentaNombre}",${m.montoNativo},${m.moneda},${m.montoUSD.toFixed(2)}\r\n`;
             });
             descargarCSV(csvContent, "movimientos_financieros.csv");
         }
@@ -909,8 +875,7 @@
         function descargarExcelP2P() {
             let csvContent = "data:text/csv;charset=utf-8,Fecha,Descripcion,Detalle,Monto USD Eq.\r\n";
             estado.historialP2P.forEach(p => {
-                let row = `${p.fechaISO},"${p.descripcion}","${p.detalle}",${p.montoUSD.toFixed(2)}`;
-                csvContent += row + "\r\n";
+                csvContent += `${p.fechaISO},"${p.descripcion}","${p.detalle}",${p.montoUSD.toFixed(2)}\r\n`;
             });
             descargarCSV(csvContent, "movimientos_p2p_bancos.csv");
         }
@@ -918,22 +883,15 @@
         function descargarExcelTrading() {
             let csvContent = "data:text/csv;charset=utf-8,Fecha,Cripto,Tiempo,Cuenta Destino,Ganancia USDT\r\n";
             estado.historialTrades.forEach(t => {
-                let row = `${t.fechaISO},${t.crypto},"${t.tiempo}","${t.cuentaNombre}",${t.montoGanancia}`;
-                csvContent += row + "\r\n";
+                csvContent += `${t.fechaISO},${t.crypto},"${t.tiempo}","${t.cuentaNombre}",${t.montoGanancia}\r\n`;
             });
             descargarCSV(csvContent, "bitacora_trading.csv");
         }
 
-        function descargarExcelAnalitica() {
+        function descargarExcelAnalisis() {
             let csvContent = "data:text/csv;charset=utf-8,Modulo,Concepto o Detalle,Monto USD\r\n";
             estado.historial.forEach(m => {
                 csvContent += `Flujo,${m.tipo} - ${m.concepto},${m.montoUSD.toFixed(2)}\r\n`;
-            });
-            estado.historialP2P.forEach(p => {
-                csvContent += `P2P-Bancos,${p.descripcion},${p.montoUSD.toFixed(2)}\r\n`;
-            });
-            estado.historialTrades.forEach(t => {
-                csvContent += `Trading,${t.crypto} (${t.tiempo}),${t.montoGanancia}\r\n`;
             });
             descargarCSV(csvContent, "analitica_financiera_completa.csv");
         }
@@ -968,7 +926,7 @@
                 const comisionUSDT = 0.05;
                 const usdtNeto = montoUSDT - comisionUSDT;
                 if(cuentaBinance.saldoNativo < montoUSDT) {
-                    alert("Saldo insuficiente en Binance para cubrir el monto y la comisión de 0.05 USDT");
+                    alert("Saldo insuficiente en Binance");
                     return;
                 }
                 cuentaBinance.saldoNativo -= montoUSDT;
@@ -984,18 +942,13 @@
                 });
             } else {
                 const bsNecesarios = montoUSDT * estado.tasaUSDT;
-                let eqBancoUSD = convertirAUSDActual(cuentaBanco.saldoNativo, 'BS');
-                if(eqBancoUSD < convertirAUSDActual(bsNecesarios, 'BS')) {
-                    alert("Saldo insuficiente en el banco local para esta compra USDT.");
-                    return;
-                }
                 cuentaBanco.saldoNativo -= bsNecesarios;
                 cuentaBinance.saldoNativo += montoUSDT;
 
                 estado.historialP2P.unshift({
                     id: Date.now(),
                     descripcion: `Compra P2P (${montoUSDT} USDT) desde ${cuentaBanco.nombre}`,
-                    detalle: `Sin comisión de compra`,
+                    detalle: `Sin comisión`,
                     montoUSD: convertirAUSDActual(bsNecesarios, 'BS'),
                     fechaISO, fechaFormato
                 });
@@ -1004,11 +957,11 @@
             guardarDatos();
             actualizarUI();
             document.getElementById('p2p-monto').value = '';
-            alert("¡Operación P2P procesada con éxito!");
+            alert("¡Operación P2P procesada!");
         }
 
         function eliminarP2P(id) {
-            if(!confirm("¿Eliminar este registro P2P / Banco?")) return;
+            if(!confirm("¿Eliminar registro P2P?")) return;
             const idx = estado.historialP2P.findIndex(p => p.id === id);
             if(idx !== -1) {
                 estado.historialP2P.splice(idx, 1);
@@ -1022,11 +975,7 @@
             const idOrigen = document.getElementById('banco-origen').value;
             const idDestino = document.getElementById('banco-destino').value;
 
-            if(isNaN(montoBs) || montoBs <= 0) return;
-            if(idOrigen === idDestino) {
-                alert("El banco origen y destino deben ser diferentes.");
-                return;
-            }
+            if(isNaN(montoBs) || montoBs <= 0 || idOrigen === idDestino) return;
 
             const cOrigen = estado.cuentasLiquidas.find(c => c.id === idOrigen);
             const cDestino = estado.cuentasLiquidas.find(c => c.id === idDestino);
@@ -1045,8 +994,8 @@
 
             estado.historialP2P.unshift({
                 id: Date.now(),
-                descripcion: `Transferencia Bancaria: ${cOrigen.nombre} → ${cDestino.nombre}`,
-                detalle: `Monto: Bs ${montoBs.toFixed(2)} (Sin comisión)`,
+                descripcion: `Transferencia: ${cOrigen.nombre} → ${cDestino.nombre}`,
+                detalle: `Bs ${montoBs.toFixed(2)}`,
                 montoUSD: convertirAUSDActual(montoBs, 'BS'),
                 fechaISO, fechaFormato
             });
@@ -1054,27 +1003,21 @@
             guardarDatos();
             actualizarUI();
             document.getElementById('banco-monto-bs').value = '';
-            alert("¡Transferencia entre bancos realizada con éxito!");
+            alert("¡Transferencia realizada!");
         }
 
         function renderizarP2PHistorial() {
             const listaP2P = document.getElementById('lista-p2p');
             listaP2P.innerHTML = '';
-            
-            let p2pFiltrado = estado.historialP2P;
-            if(estado.filtroFecha) {
-                p2pFiltrado = estado.historialP2P.filter(p => p.fechaISO === estado.filtroFecha);
-            }
-
+            let p2pFiltrado = estado.filtroFecha ? estado.historialP2P.filter(p => p.fechaISO === estado.filtroFecha) : estado.historialP2P;
             const hoyISO = new Date().toISOString().split('T')[0];
 
             if(p2pFiltrado.length === 0) {
-                listaP2P.innerHTML = '<p class="text-sm text-gray-400 text-center py-2">No hay movimientos P2P o bancarios registrados.</p>';
+                listaP2P.innerHTML = '<p class="text-sm text-gray-400 text-center py-2">Sin movimientos P2P.</p>';
                 return;
             }
             p2pFiltrado.forEach(p => {
                 let botonesEdicion = (p.fechaISO === hoyISO) ? `<button onclick="eliminarP2P(${p.id})" class="text-red-500 hover:underline text-[10px] ml-2">Eliminar</button>` : '';
-                
                 listaP2P.innerHTML += `
                     <div class="flex justify-between items-center text-sm py-2 border-b border-gray-50">
                         <div>
@@ -1099,14 +1042,11 @@
             const hoyObj = new Date();
             const fechaISO = hoyObj.toISOString().split('T')[0];
             const fechaFormato = hoyObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
-
             const tradeId = Date.now();
+
             estado.historialTrades.unshift({ id: tradeId, crypto, montoGanancia, tiempo, cuentaNombre: cuentaObj ? cuentaObj.nombre : "Binance", cuentaId: cuentaObj ? cuentaObj.id : "", fechaISO, fechaFormato });
 
-            const tasaBCVRef = estado.tasaBCV;
-            const tasaUSDTRef = estado.tasaUSDT;
-            let montoUSD = convertirAUSDHistorico(montoGanancia, 'USDT', tasaBCVRef, tasaUSDTRef);
-
+            let montoUSD = convertirAUSDHistorico(montoGanancia, 'USDT', estado.tasaBCV, estado.tasaUSDT);
             estado.historial.unshift({
                 id: tradeId,
                 concepto: 'Trading',
@@ -1116,17 +1056,17 @@
                 tipo: 'ingreso',
                 cuentaNombre: cuentaObj ? cuentaObj.nombre : "Binance",
                 cuentaId: cuentaObj ? cuentaObj.id : "",
-                fechaISO, fechaFormato, tasaBCVRef, tasaUSDTRef
+                fechaISO, fechaFormato, tasaBCVRef: estado.tasaBCV, tasaUSDTRef: estado.tasaUSDT
             });
 
             guardarDatos();
             actualizarUI();
             document.getElementById('trade-monto').value = '';
-            alert("¡Trade registrado, acreditado y sumado al flujo!");
+            alert("¡Trade registrado!");
         }
 
         function eliminarTrade(id) {
-            if(!confirm("¿Eliminar este trade? Se descontará de la cuenta y del historial.")) return;
+            if(!confirm("¿Eliminar este trade?")) return;
             const idxTrade = estado.historialTrades.findIndex(t => t.id === id);
             if(idxTrade !== -1) {
                 const t = estado.historialTrades[idxTrade];
@@ -1134,9 +1074,7 @@
                 if(cuentaObj) cuentaObj.saldoNativo -= t.montoGanancia;
                 estado.historialTrades.splice(idxTrade, 1);
             }
-            const idxFlujo = estado.historial.findIndex(m => m.id === id);
-            if(idxFlujo !== -1) estado.historial.splice(idxFlujo, 1);
-
+            estado.historial = estado.historial.filter(m => m.id !== id);
             guardarDatos();
             actualizarUI();
         }
@@ -1144,16 +1082,10 @@
         function renderizarTrades() {
             const listaTrades = document.getElementById('lista-trades');
             listaTrades.innerHTML = '';
-
-            let tradesFiltrados = estado.historialTrades;
-            if(estado.filtroFecha) {
-                tradesFiltrados = estado.historialTrades.filter(t => t.fechaISO === estado.filtroFecha);
-            }
-
-            let totalGananciaUSDT = tradesFiltrados.reduce((sum, t) => sum + t.montoGanancia, 0);
-            document.getElementById('trading-total-ganancia').innerText = totalGananciaUSDT.toFixed(2);
+            let tradesFiltrados = estado.filtroFecha ? estado.historialTrades.filter(t => t.fechaISO === estado.filtroFecha) : estado.historialTrades;
+            
+            document.getElementById('trading-total-ganancia').innerText = tradesFiltrados.reduce((sum, t) => sum + t.montoGanancia, 0).toFixed(2);
             document.getElementById('trading-total-ops').innerText = tradesFiltrados.length;
-
             const hoyISO = new Date().toISOString().split('T')[0];
 
             if(tradesFiltrados.length === 0) {
@@ -1163,7 +1095,6 @@
 
             tradesFiltrados.forEach(t => {
                 let botonesEdicion = (t.fechaISO === hoyISO) ? `<button onclick="eliminarTrade(${t.id})" class="text-red-500 hover:underline text-[10px] ml-2">Eliminar</button>` : '';
-                
                 listaTrades.innerHTML += `
                     <div class="flex justify-between items-center text-sm py-2 border-b border-gray-50">
                         <div>
@@ -1175,95 +1106,76 @@
             });
         }
 
-        function generarAnaliticaAvanzada() {
-            let ingresosTotal = 0;
-            let gastosTotal = 0;
+        function actualizarVistaAnalitica() {
+            const selectorMes = document.getElementById('filtro-mes-analisis');
+            const mesFiltro = selectorMes ? selectorMes.value : "2026-08";
 
-            let ingresosMap = {};
-            let gastosMap = {};
-            let diasMap = {};
-
-            let datosAnalisis = estado.historial;
-            if(estado.filtroFecha) {
-                datosAnalisis = estado.historial.filter(m => m.fechaISO === estado.filtroFecha);
-            }
-
-            datosAnalisis.forEach(m => {
-                if(!diasMap[m.fechaFormato]) diasMap[m.fechaFormato] = { ingresos: 0, gastos: 0 };
-                
-                if(m.tipo === 'ingreso') {
-                    ingresosTotal += m.montoUSD;
-                    ingresosMap[m.concepto] = (ingresosMap[m.concepto] || 0) + m.montoUSD;
-                    diasMap[m.fechaFormato].ingresos += m.montoUSD;
-                } else {
-                    gastosTotal += m.montoUSD;
-                    gastosMap[m.concepto] = (gastosMap[m.concepto] || 0) + m.montoUSD;
-                    diasMap[m.fechaFormato].gastos += m.montoUSD;
-                }
+            const movsMes = estado.historial.filter(m => {
+                if (!m.fechaISO) return false;
+                return m.fechaISO.startsWith(mesFiltro);
             });
 
-            let containerIng = document.getElementById('analitica-ingresos');
-            containerIng.innerHTML = '';
-            if(Object.keys(ingresosMap).length === 0) {
-                containerIng.innerHTML = '<p class="text-xs text-gray-400">Sin ingresos registrados.</p>';
-            } else {
-                for(let cat in ingresosMap) {
-                    let pct = ingresosTotal > 0 ? (ingresosMap[cat] / ingresosTotal) * 100 : 0;
-                    containerIng.innerHTML += `
-                        <div class="flex justify-between items-center py-1 border-b border-gray-50">
-                            <span class="text-gray-700">${cat}</span>
-                            <div class="text-right">
-                                <span class="font-bold text-green-600">+$${ingresosMap[cat].toFixed(2)}</span>
-                                <span class="text-xs text-gray-400 ml-2">(${pct.toFixed(1)}%)</span>
-                            </div>
-                        </div>`;
-                }
-            }
+            let totalIngresos = 0, totalGastos = 0;
+            let ingresosPorCat = {}, gastosPorCat = {}, diasMap = {};
 
-            let containerGas = document.getElementById('analitica-gastos');
-            containerGas.innerHTML = '';
-            if(Object.keys(gastosMap).length === 0) {
-                containerGas.innerHTML = '<p class="text-xs text-gray-400">Sin gastos registrados.</p>';
-            } else {
-                for(let cat in gastosMap) {
-                    let pct = gastosTotal > 0 ? (gastosMap[cat] / gastosTotal) * 100 : 0;
-                    containerGas.innerHTML += `
-                        <div class="flex justify-between items-center py-1 border-b border-gray-50">
-                            <span class="text-gray-700">${cat}</span>
-                            <div class="text-right">
-                                <span class="font-bold text-gray-900">-$${gastosMap[cat].toFixed(2)}</span>
-                                <span class="text-xs text-gray-400 ml-2">(${pct.toFixed(1)}%)</span>
-                            </div>
-                        </div>`;
+            movsMes.forEach(m => {
+                let monto = m.montoUSD || 0;
+                if (m.tipo === 'ingreso') {
+                    totalIngresos += monto;
+                    ingresosPorCat[m.concepto] = (ingresosPorCat[m.concepto] || 0) + monto;
+                } else {
+                    totalGastos += monto;
+                    gastosPorCat[m.concepto] = (gastosPorCat[m.concepto] || 0) + monto;
                 }
-            }
 
-            let containerNeto = document.getElementById('analitica-neto');
-            containerNeto.innerHTML = '';
-            if(Object.keys(diasMap).length === 0) {
-                containerNeto.innerHTML = '<p class="text-xs text-gray-400">No hay actividad diaria para calcular resultado neto.</p>';
-            } else {
-                for(let dia in diasMap) {
-                    let ing = diasMap[dia].ingresos;
-                    let gas = diasMap[dia].gastos;
-                    let netoDia = ing - gas;
-                    let colorNeto = netoDia >= 0 ? 'text-green-600' : 'text-red-500';
-                    let signoNeto = netoDia >= 0 ? '+' : '';
-                    let sobregiro = gas > estado.presupuestoDiario ? gas - estado.presupuestoDiario : 0;
+                if(!diasMap[m.fechaFormato]) diasMap[m.fechaFormato] = { ingresos: 0, gastos: 0 };
+                if(m.tipo === 'ingreso') diasMap[m.fechaFormato].ingresos += monto;
+                else diasMap[m.fechaFormato].gastos += monto;
+            });
 
-                    containerNeto.innerHTML += `
-                        <div class="bg-gray-50 p-3 rounded text-xs space-y-1">
-                            <div class="flex justify-between font-bold text-gray-800">
-                                <span>Fecha: ${dia}</span>
-                                <span class="${colorNeto}">Balance Neto: ${signoNeto}$${netoDia.toFixed(2)} USD</span>
-                            </div>
-                            <div class="flex justify-between text-gray-500">
-                                <span>Ingresos: +$${ing.toFixed(2)} | Gastos: -$${gas.toFixed(2)}</span>
-                                ${sobregiro > 0 ? `<span class="text-red-500 font-semibold">Sobregiro diario: -$${sobregiro.toFixed(2)}</span>` : '<span class="text-green-600">En presupuesto diario</span>'}
-                            </div>
-                        </div>`;
-                }
+            document.getElementById('total-ingresos-periodo').textContent = `+$${totalIngresos.toFixed(2)}`;
+            document.getElementById('total-gastos-periodo').textContent = `-$${totalGastos.toFixed(2)}`;
+            
+            let netoGeneral = totalIngresos - totalGastos;
+            const elNeto = document.getElementById('neto-general-periodo');
+            elNeto.textContent = `${netoGeneral >= 0 ? '+' : ''}$${netoGeneral.toFixed(2)}`;
+            elNeto.className = `text-2xl font-bold ${netoGeneral >= 0 ? 'text-green-400' : 'text-red-400'}`;
+
+            let htmlIngresos = '';
+            for (let cat in ingresosPorCat) {
+                let val = ingresosPorCat[cat];
+                let porcentaje = totalIngresos > 0 ? ((val / totalIngresos) * 100).toFixed(1) : 0;
+                htmlIngresos += `<div class="flex justify-between items-center text-xs"><span class="text-gray-700 font-medium">${cat}</span><div><span class="font-bold text-green-600 mr-2">+$${val.toFixed(2)}</span><span class="text-gray-400">(${porcentaje}%)</span></div></div>`;
             }
+            document.getElementById('lista-desglose-ingresos').innerHTML = htmlIngresos || '<p class="text-xs text-gray-400 text-center py-2">Sin ingresos en este período</p>';
+
+            let htmlGastos = '';
+            for (let cat in gastosPorCat) {
+                let val = gastosPorCat[cat];
+                let porcentaje = totalGastos > 0 ? ((val / totalGastos) * 100).toFixed(1) : 0;
+                htmlGastos += `<div class="flex justify-between items-center text-xs"><span class="text-gray-700 font-medium">${cat}</span><div><span class="font-bold text-red-600 mr-2">-$${val.toFixed(2)}</span><span class="text-gray-400">(${porcentaje}%)</span></div></div>`;
+            }
+            document.getElementById('lista-desglose-gastos').innerHTML = htmlGastos || '<p class="text-xs text-gray-400 text-center py-2">Sin gastos en este período</p>';
+
+            let htmlBalance = '';
+            for(let fecha in diasMap) {
+                let datos = diasMap[fecha];
+                let balanceNetoDia = datos.ingresos - datos.gastos;
+                htmlBalance += `
+                    <div class="bg-gray-50 border border-gray-100 p-3 rounded-lg text-xs space-y-1">
+                        <div class="flex justify-between items-center font-semibold">
+                            <span class="text-gray-800">Fecha: ${fecha}</span>
+                            <span class="${balanceNetoDia >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                Balance: ${balanceNetoDia >= 0 ? '+' : ''}$${balanceNetoDia.toFixed(2)} USD
+                            </span>
+                        </div>
+                        <div class="flex justify-between text-gray-500 text-[11px]">
+                            <span>Ingresos: +$${datos.ingresos.toFixed(2)}</span>
+                            <span>Gastos: -$${datos.gastos.toFixed(2)}</span>
+                        </div>
+                    </div>`;
+            }
+            document.getElementById('lista-balance-diario').innerHTML = htmlBalance || '<p class="text-xs text-gray-400 text-center py-2">No hay registros diarios para este mes</p>';
         }
 
         function abrirModalCuentas() {
@@ -1273,14 +1185,7 @@
 
             estado.cuentasLiquidas.forEach(c => {
                 let eqUSD = convertirAUSDActual(c.saldoNativo, c.moneda);
-                listaCuentas.innerHTML += `
-                    <div class="flex justify-between text-sm py-1 border-b border-gray-50">
-                        <div>
-                            <span class="text-gray-700 block">${c.nombre}</span>
-                            <span class="text-[10px] text-gray-400">${c.saldoNativo.toFixed(2)} ${c.moneda}</span>
-                        </div>
-                        <span class="font-medium text-gray-900">~$${eqUSD.toFixed(2)} USD</span>
-                    </div>`;
+                listaCuentas.innerHTML += `<div class="flex justify-between text-sm py-1 border-b border-gray-50"><div><span class="text-gray-700 block">${c.nombre}</span><span class="text-[10px] text-gray-400">${c.saldoNativo.toFixed(2)} ${c.moneda}</span></div><span class="font-medium text-gray-900">~$${eqUSD.toFixed(2)} USD</span></div>`;
             });
 
             let totalDeudas = 0;
@@ -1295,137 +1200,6 @@
         function cerrarModalCuentas() { document.getElementById('modal-cuentas').classList.add('hidden'); }
 
         actualizarUI();
-        
-        function actualizarVistaAnalitica() {
-    // 1. Obtener el mes seleccionado en el filtro (por defecto mes actual)
-    const selectorMes = document.getElementById('filtro-mes-analisis');
-    const mesFiltro = selectorMes ? selectorMes.value : "2026-08"; // YYYY-MM
-
-    const movimientos = JSON.parse(localStorage.getItem('sandbox_movimientos')) || [];
-
-    // Filtrar movimientos por el mes seleccionado
-    const movsMes = movimientos.filter(m => {
-        if (!m.fecha) return false;
-        // Asumiendo formato de fecha DD/MM/YYYY o YYYY-MM-DD
-        let partes = m.fecha.includes('/') ? m.fecha.split('/') : m.fecha.split('-');
-        let anio, mes;
-        if (m.fecha.includes('/')) {
-            anio = partes[2];
-            mes = partes[1].padStart(2, '0');
-        } else {
-            anio = partes[0];
-            mes = partes[1].padStart(2, '0');
-        }
-        return `${anio}-${mes}` === mesFiltro;
-    });
-
-    // 2. Calcular Totales y Desgloses de Ingresos y Gastos
-    let totalIngresos = 0;
-    let totalGastos = 0;
-    let ingresosPorCat = {};
-    let gastosPorCat = {};
-
-    movsMes.forEach(m => {
-        let monto = parseFloat(m.monto) || 0;
-        if (m.tipo === 'ingreso') {
-            totalIngresos += monto;
-            ingresosPorCat[m.categoria] = (ingresosPorCat[m.categoria] || 0) + monto;
-        } else {
-            totalGastos += Math.abs(monto);
-            gastosPorCat[m.categoria] = (gastosPorCat[m.categoria] || 0) + Math.abs(monto);
-        }
-    });
-
-    // Mostrar totales generales en la tarjeta superior
-    document.getElementById('total-ingresos-periodo').textContent = `+$${totalIngresos.toFixed(2)}`;
-    document.getElementById('total-gastos-periodo').textContent = `-$${totalGastos.toFixed(2)}`;
-    
-    // Calcular y mostrar el Neto General (Ingresos - Gastos)
-    let netoGeneral = totalIngresos - totalGastos;
-    const elNeto = document.getElementById('neto-general-periodo');
-    elNeto.textContent = `${netoGeneral >= 0 ? '+' : ''}$${netoGeneral.toFixed(2)}`;
-    elNeto.className = `text-2xl font-bold ${netoGeneral >= 0 ? 'text-green-400' : 'text-red-400'}`;
-
-    // 3. Renderizar Desglose de Ingresos (%)
-    let htmlIngresos = '';
-    for (let cat in ingresosPorCat) {
-        let val = ingresosPorCat[cat];
-        let porcentaje = totalIngresos > 0 ? ((val / totalIngresos) * 100).toFixed(1) : 0;
-        htmlIngresos += `
-            <div class="flex justify-between items-center text-xs">
-                <span class="text-gray-700 font-medium">${cat}</span>
-                <div>
-                    <span class="font-bold text-green-600 mr-2">+$${val.toFixed(2)}</span>
-                    <span class="text-gray-400">(${porcentaje}%)</span>
-                </div>
-            </div>`;
-    }
-    document.getElementById('lista-desglose-ingresos').innerHTML = htmlIngresos || '<p class="text-xs text-gray-400 text-center py-2">Sin ingresos en este período</p>';
-
-    // 4. Renderizar Desglose de Gastos (%)
-    let htmlGastos = '';
-    for (let cat in gastosPorCat) {
-        let val = gastosPorCat[cat];
-        let porcentaje = totalGastos > 0 ? ((val / totalGastos) * 100).toFixed(1) : 0;
-        htmlGastos += `
-            <div class="flex justify-between items-center text-xs">
-                <span class="text-gray-700 font-medium">${cat}</span>
-                <div>
-                    <span class="font-bold text-red-600 mr-2">-$${val.toFixed(2)}</span>
-                    <span class="text-gray-400">(${porcentaje}%)</span>
-                </div>
-            </div>`;
-    }
-    document.getElementById('lista-desglose-gastos').innerHTML = htmlGastos || '<p class="text-xs text-gray-400 text-center py-2">Sin gastos en este período</p>';
-
-    // 5. Agrupar Balance Diario (del más reciente al más antiguo para el scroll)
-    let diasMap = {};
-    movsMes.forEach(m => {
-        if (!diasMap[m.fecha]) {
-            diasMap[m.fecha] = { ingresos: 0, gastos: 0 };
-        }
-        let monto = parseFloat(m.monto) || 0;
-        if (m.tipo === 'ingreso') {
-            diasMap[m.fecha].ingresos += monto;
-        } else {
-            diasMap[m.fecha].gastos += Math.abs(monto);
-        }
-    });
-
-    // Ordenar fechas de la más reciente a la más antigua
-    let fechasOrdenadas = Object.keys(diasMap).sort((a, b) => {
-        let partsA = a.split('/');
-        let partsB = b.split('/');
-        let dateA = new Date(partsA[2], partsA[1]-1, partsA[0]);
-        let dateB = new Date(partsB[2], partsB[1]-1, partsB[0]);
-        return dateB - dateA;
-    });
-
-    let htmlBalance = '';
-    fechasOrdenadas.forEach(fecha => {
-        let datos = diasMap[fecha];
-        let balanceNetoDia = datos.ingresos - datos.gastos;
-        htmlBalance += `
-            <div class="bg-gray-50 border border-gray-100 p-3 rounded-lg text-xs space-y-1">
-                <div class="flex justify-between items-center font-semibold">
-                    <span class="text-gray-800">Fecha: ${fecha}</span>
-                    <span class="${balanceNetoDia >= 0 ? 'text-green-600' : 'text-red-600'}">
-                        Balance Neto: ${balanceNetoDia >= 0 ? '+' : ''}$${balanceNetoDia.toFixed(2)} USD
-                    </span>
-                </div>
-                <div class="flex justify-between text-gray-500 text-[11px]">
-                    <span>Ingresos: +$${datos.ingresos.toFixed(2)}</span>
-                    <span>Gastos: -$${datos.gastos.toFixed(2)}</span>
-                </div>
-            </div>`;
-    });
-
-    document.getElementById('lista-balance-diario').innerHTML = htmlBalance || '<p class="text-xs text-gray-400 text-center py-2">No hay registros diarios para este mes</p>';
-}
-
-// Función auxiliar para activar la recarga al cambiar el mes en el selector
-function actualizarAnalisisPeriodo() {
-    actualizarVistaAnalitica();                      }
     </script>
 </body>
 </html>
