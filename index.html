@@ -306,26 +306,56 @@
         </div>
     </div>
 
-    <!-- VISTA 4: ANALÍTICA Y RESULTADO NETO -->
-    <div id="vista-analitica" class="hidden">
-        <div class="flex justify-between items-center mb-3">
-            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Reporte y Descarga de Análisis</h2>
-            <button onclick="descargarExcelAnalitica()" class="text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded hover:bg-green-100 font-medium">📥 Excel Completo</button>
+    <!-- VISTA NUEVA / ACTUALIZADA: ANÁLISIS % Y BALANCE -->
+    <div id="vista-analitica" class="hidden space-y-4">
+        
+        <!-- Control de Periodo y Neto General -->
+        <div class="card p-4 bg-gray-900 text-white">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Neto General del Periodo</span>
+                <input type="month" id="filtro-mes-analisis" value="2026-08" onchange="actualizarAnalisisPeriodo()" class="text-xs bg-gray-800 border border-gray-700 text-white rounded px-2 py-1 focus:outline-none">
+            </div>
+            <div class="flex justify-between items-end">
+                <div>
+                    <p class="text-2xl font-bold" id="neto-general-periodo">$0.00</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5">Ingresos menos Egresos totales</p>
+                </div>
+                <button onclick="descargarExcelAnalisis()" class="text-[10px] bg-green-600 text-white px-2.5 py-1.5 rounded font-medium hover:bg-green-700 transition-colors">📥 Excel Completo</button>
+            </div>
         </div>
 
-        <div class="card p-5 mb-5">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-3">Desglose de Ingresos (%)</h2>
-            <div id="analitica-ingresos" class="space-y-2 text-sm"></div>
-        </div>
-
-        <div class="card p-5 mb-5">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-3">Desglose de Gastos (%)</h2>
-            <div id="analitica-gastos" class="space-y-2 text-sm"></div>
-        </div>
-
+        <!-- Desglose de Ingresos -->
         <div class="card p-5">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2 mb-3">Resultado Neto Día a Día</h2>
-            <div id="analitica-neto" class="space-y-3"></div>
+            <div class="flex justify-between items-center border-b pb-2 mb-3">
+                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Desglose de Ingresos (%)</h2>
+                <span class="text-xs font-bold text-green-600" id="total-ingresos-periodo">+$0.00</span>
+            </div>
+            <div id="lista-desglose-ingresos" class="space-y-3">
+                <!-- Inyectado por JS -->
+            </div>
+        </div>
+
+        <!-- Desglose de Gastos -->
+        <div class="card p-5">
+            <div class="flex justify-between items-center border-b pb-2 mb-3">
+                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Desglose de Gastos (%)</h2>
+                <span class="text-xs font-bold text-red-600" id="total-gastos-periodo">-$0.00</span>
+            </div>
+            <div id="lista-desglose-gastos" class="space-y-3">
+                <!-- Inyectado por JS -->
+            </div>
+        </div>
+
+        <!-- Balance Diario (Con Scroll y límite visual de 5 días) -->
+        <div class="card p-5">
+            <div class="flex justify-between items-center border-b pb-2 mb-3">
+                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Balance Diario</h2>
+                <span class="text-[10px] text-gray-400">Desliza para ver más días ↕️</span>
+            </div>
+            <!-- Contenedor con altura fija y scroll vertical para aislar los 5 días principales -->
+            <div id="lista-balance-diario" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                <!-- Inyectado por JS ordenado del más reciente al más antiguo -->
+            </div>
         </div>
     </div>
 
