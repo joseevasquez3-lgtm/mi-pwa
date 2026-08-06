@@ -1295,6 +1295,137 @@
         function cerrarModalCuentas() { document.getElementById('modal-cuentas').classList.add('hidden'); }
 
         actualizarUI();
+        
+        function actualizarVistaAnalitica() {
+    // 1. Obtener el mes seleccionado en el filtro (por defecto mes actual)
+    const selectorMes = document.getElementById('filtro-mes-analisis');
+    const mesFiltro = selectorMes ? selectorMes.value : "2026-08"; // YYYY-MM
+
+    const movimientos = JSON.parse(localStorage.getItem('sandbox_movimientos')) || [];
+
+    // Filtrar movimientos por el mes seleccionado
+    const movsMes = movimientos.filter(m => {
+        if (!m.fecha) return false;
+        // Asumiendo formato de fecha DD/MM/YYYY o YYYY-MM-DD
+        let partes = m.fecha.includes('/') ? m.fecha.split('/') : m.fecha.split('-');
+        let anio, mes;
+        if (m.fecha.includes('/')) {
+            anio = partes[2];
+            mes = partes[1].padStart(2, '0');
+        } else {
+            anio = partes[0];
+            mes = partes[1].padStart(2, '0');
+        }
+        return `${anio}-${mes}` === mesFiltro;
+    });
+
+    // 2. Calcular Totales y Desgloses de Ingresos y Gastos
+    let totalIngresos = 0;
+    let totalGastos = 0;
+    let ingresosPorCat = {};
+    let gastosPorCat = {};
+
+    movsMes.forEach(m => {
+        let monto = parseFloat(m.monto) || 0;
+        if (m.tipo === 'ingreso') {
+            totalIngresos += monto;
+            ingresosPorCat[m.categoria] = (ingresosPorCat[m.categoria] || 0) + monto;
+        } else {
+            totalGastos += Math.abs(monto);
+            gastosPorCat[m.categoria] = (gastosPorCat[m.categoria] || 0) + Math.abs(monto);
+        }
+    });
+
+    // Mostrar totales generales en la tarjeta superior
+    document.getElementById('total-ingresos-periodo').textContent = `+$${totalIngresos.toFixed(2)}`;
+    document.getElementById('total-gastos-periodo').textContent = `-$${totalGastos.toFixed(2)}`;
+    
+    // Calcular y mostrar el Neto General (Ingresos - Gastos)
+    let netoGeneral = totalIngresos - totalGastos;
+    const elNeto = document.getElementById('neto-general-periodo');
+    elNeto.textContent = `${netoGeneral >= 0 ? '+' : ''}$${netoGeneral.toFixed(2)}`;
+    elNeto.className = `text-2xl font-bold ${netoGeneral >= 0 ? 'text-green-400' : 'text-red-400'}`;
+
+    // 3. Renderizar Desglose de Ingresos (%)
+    let htmlIngresos = '';
+    for (let cat in ingresosPorCat) {
+        let val = ingresosPorCat[cat];
+        let porcentaje = totalIngresos > 0 ? ((val / totalIngresos) * 100).toFixed(1) : 0;
+        htmlIngresos += `
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gray-700 font-medium">${cat}</span>
+                <div>
+                    <span class="font-bold text-green-600 mr-2">+$${val.toFixed(2)}</span>
+                    <span class="text-gray-400">(${porcentaje}%)</span>
+                </div>
+            </div>`;
+    }
+    document.getElementById('lista-desglose-ingresos').innerHTML = htmlIngresos || '<p class="text-xs text-gray-400 text-center py-2">Sin ingresos en este período</p>';
+
+    // 4. Renderizar Desglose de Gastos (%)
+    let htmlGastos = '';
+    for (let cat in gastosPorCat) {
+        let val = gastosPorCat[cat];
+        let porcentaje = totalGastos > 0 ? ((val / totalGastos) * 100).toFixed(1) : 0;
+        htmlGastos += `
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gray-700 font-medium">${cat}</span>
+                <div>
+                    <span class="font-bold text-red-600 mr-2">-$${val.toFixed(2)}</span>
+                    <span class="text-gray-400">(${porcentaje}%)</span>
+                </div>
+            </div>`;
+    }
+    document.getElementById('lista-desglose-gastos').innerHTML = htmlGastos || '<p class="text-xs text-gray-400 text-center py-2">Sin gastos en este período</p>';
+
+    // 5. Agrupar Balance Diario (del más reciente al más antiguo para el scroll)
+    let diasMap = {};
+    movsMes.forEach(m => {
+        if (!diasMap[m.fecha]) {
+            diasMap[m.fecha] = { ingresos: 0, gastos: 0 };
+        }
+        let monto = parseFloat(m.monto) || 0;
+        if (m.tipo === 'ingreso') {
+            diasMap[m.fecha].ingresos += monto;
+        } else {
+            diasMap[m.fecha].gastos += Math.abs(monto);
+        }
+    });
+
+    // Ordenar fechas de la más reciente a la más antigua
+    let fechasOrdenadas = Object.keys(diasMap).sort((a, b) => {
+        let partsA = a.split('/');
+        let partsB = b.split('/');
+        let dateA = new Date(partsA[2], partsA[1]-1, partsA[0]);
+        let dateB = new Date(partsB[2], partsB[1]-1, partsB[0]);
+        return dateB - dateA;
+    });
+
+    let htmlBalance = '';
+    fechasOrdenadas.forEach(fecha => {
+        let datos = diasMap[fecha];
+        let balanceNetoDia = datos.ingresos - datos.gastos;
+        htmlBalance += `
+            <div class="bg-gray-50 border border-gray-100 p-3 rounded-lg text-xs space-y-1">
+                <div class="flex justify-between items-center font-semibold">
+                    <span class="text-gray-800">Fecha: ${fecha}</span>
+                    <span class="${balanceNetoDia >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        Balance Neto: ${balanceNetoDia >= 0 ? '+' : ''}$${balanceNetoDia.toFixed(2)} USD
+                    </span>
+                </div>
+                <div class="flex justify-between text-gray-500 text-[11px]">
+                    <span>Ingresos: +$${datos.ingresos.toFixed(2)}</span>
+                    <span>Gastos: -$${datos.gastos.toFixed(2)}</span>
+                </div>
+            </div>`;
+    });
+
+    document.getElementById('lista-balance-diario').innerHTML = htmlBalance || '<p class="text-xs text-gray-400 text-center py-2">No hay registros diarios para este mes</p>';
+}
+
+// Función auxiliar para activar la recarga al cambiar el mes en el selector
+function actualizarAnalisisPeriodo() {
+    actualizarVistaAnalitica();                      }
     </script>
 </body>
 </html>
