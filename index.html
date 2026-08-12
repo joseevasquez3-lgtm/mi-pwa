@@ -33,7 +33,10 @@
         </div>
         <div class="flex space-x-3 text-right">
             <div>
-                <span class="text-[9px] uppercase font-semibold text-gray-400 block">Tasa BCV</span>
+                <div class="flex items-center justify-end space-x-1">
+                    <span class="text-[9px] uppercase font-semibold text-gray-400">Tasa BCV</span>
+                    <button id="btn-restaurar-tasa" onclick="restaurarTasaAutomatica()" class="text-[10px] text-blue-600 hover:text-blue-800 hidden" title="Volver a tasa automática">🔄</button>
+                </div>
                 <span class="text-xs font-bold text-gray-800" id="txt-tasa">748.79</span>
             </div>
             <div>
@@ -380,6 +383,7 @@
         let estadoPorDefecto = {
             tasaBCV: 748.79,
             tasaUSDT: 840.00,
+            esTasaManual: false,
             ingresosMensuales: 900.00,
             presupuestoDiario: 30.00,
             gastosAcumuladosUSD: 0,
@@ -407,6 +411,7 @@
         let estado = JSON.parse(localStorage.getItem('sandbox_estado_v13')) || estadoPorDefecto;
         estado.cuentasLiquidas.forEach((c, idx) => { if(!c.id) c.id = 'cuenta_' + idx; });
         if(estado.filtroFecha === undefined) estado.filtroFecha = null;
+        if(estado.esTasaManual === undefined) estado.esTasaManual = false;
 
         function guardarDatos() {
             localStorage.setItem('sandbox_estado_v13', JSON.stringify(estado));
@@ -414,6 +419,9 @@
 
         // LÓGICA INTELIGENTE DE ACTUALIZACIÓN AUTOMÁTICA DE TASA BCV
         async function verificarYActualizarTasaBCV() {
+            // Si el usuario fijó una tasa de forma manual por contingencia, respetarla y no sobrescribir automáticamente
+            if (estado.esTasaManual) return;
+
             const ahora = new Date();
             const diaSemana = ahora.getDay(); // 0 = Domingo, 6 = Sábado
             const hora = ahora.getHours();
@@ -439,6 +447,7 @@
 
                 if (nuevaTasa && !isNaN(nuevaTasa) && nuevaTasa !== estado.tasaBCV) {
                     estado.tasaBCV = nuevaTasa;
+                    estado.esTasaManual = false;
                     guardarDatos();
                     localStorage.setItem('bcv_ultima_fecha', fechaHoy);
                     actualizarUI();
@@ -486,12 +495,37 @@
         }
 
         function editarTasas() {
-            let nuevaBCV = prompt("Actualizar Tasa Oficial BCV:", estado.tasaBCV);
-            if (nuevaBCV && !isNaN(nuevaBCV)) estado.tasaBCV = parseFloat(nuevaBCV);
+            let nuevaBCV = prompt("Actualizar Tasa Oficial BCV (Modo Contingencia Manual):", estado.tasaBCV);
+            if (nuevaBCV && !isNaN(nuevaBCV)) {
+                estado.tasaBCV = parseFloat(nuevaBCV);
+                estado.esTasaManual = true; // Activa indicador manual
+            }
             let nuevaUSDT = prompt("Actualizar Tasa Binance USDT:", estado.tasaUSDT);
             if (nuevaUSDT && !isNaN(nuevaUSDT)) estado.tasaUSDT = parseFloat(nuevaUSDT);
             guardarDatos();
             actualizarUI();
+        }
+
+        async function restaurarTasaAutomatica() {
+            estado.esTasaManual = false;
+            document.getElementById('btn-restaurar-tasa').classList.add('hidden');
+            
+            try {
+                const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+                if (respuesta.ok) {
+                    const datos = await respuesta.json();
+                    const nuevaTasa = parseFloat(datos.promedio);
+                    if (nuevaTasa && !isNaN(nuevaTasa)) {
+                        estado.tasaBCV = nuevaTasa;
+                    }
+                }
+            } catch (e) {
+                console.log("No se pudo conectar a la API, manteniendo valor por defecto o anterior.");
+            }
+            
+            guardarDatos();
+            actualizarUI();
+            alert("Tasa restaurada al modo automático.");
         }
 
         function convertirAUSDHistorico(monto, moneda, tasaBCVRef, tasaUSDTRef) {
@@ -614,8 +648,16 @@
         function actualizarUI() {
             document.getElementById('txt-tasa').innerText = estado.tasaBCV.toFixed(2);
             document.getElementById('txt-tasa-usdt').innerText = estado.tasaUSDT.toFixed(2);
-            document.getElementById('disponible').innerText = obtenerDisponibleUSD().toFixed(2);
             
+            // Mostrar u ocultar el botón de restaurar según si la tasa es manual o automática
+            const btnRestaurar = document.getElementById('btn-restaurar-tasa');
+            if (estado.esTasaManual) {
+                btnRestaurar.classList.remove('hidden');
+            } else {
+                btnRestaurar.classList.add('hidden');
+            }
+
+            document.getElementById('disponible').innerText = obtenerDisponibleUSD().toFixed(2);
             document.getElementById('presupuesto-diario').innerText = estado.presupuestoDiario.toFixed(2);
             document.getElementById('presupuesto-mensual').innerText = estado.ingresosMensuales.toFixed(2);
 
@@ -1221,7 +1263,7 @@
 
             estado.cuentasLiquidas.forEach(c => {
                 let eqUSD = convertirAUSDActual(c.saldoNativo, c.moneda);
-                listaCuentas.innerHTML += `<div class="flex justify-between text-sm py-1 border-b border-gray-50"><div><span class="text-gray-700 block">${c.nombre}</span><span class="text-[10px] text-gray-400">${c.saldoNativo.saldoNativo ? c.saldoNativo.toFixed(2) : c.saldoNativo.toFixed(2)} ${c.moneda}</span></div><span class="font-medium text-gray-900">~$${eqUSD.toFixed(2)} USD</span></div>`;
+                listaCuentas.innerHTML += `<div class="flex justify-between text-sm py-1 border-b border-gray-50"><div><span class="text-gray-700 block">${c.nombre}</span><span class="text-[10px] text-gray-400">${c.saldoNativo.saldoNativo ? c.saldoNativo.saldoNativo.toFixed(2) : c.saldoNativo.toFixed(2)} ${c.moneda}</span></div><span class="font-medium text-gray-900">~$${eqUSD.toFixed(2)} USD</span></div>`;
             });
 
             let totalDeudas = 0;
