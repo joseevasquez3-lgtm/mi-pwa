@@ -407,10 +407,46 @@
         let estado = JSON.parse(localStorage.getItem('sandbox_estado_v13')) || estadoPorDefecto;
         estado.cuentasLiquidas.forEach((c, idx) => { if(!c.id) c.id = 'cuenta_' + idx; });
         if(estado.filtroFecha === undefined) estado.filtroFecha = null;
-        if(estado.tasaBCV === 740.00) estado.tasaBCV = 748.79;
 
         function guardarDatos() {
             localStorage.setItem('sandbox_estado_v13', JSON.stringify(estado));
+        }
+
+        // LÓGICA INTELIGENTE DE ACTUALIZACIÓN AUTOMÁTICA DE TASA BCV
+        async function verificarYActualizarTasaBCV() {
+            const ahora = new Date();
+            const diaSemana = ahora.getDay(); // 0 = Domingo, 6 = Sábado
+            const hora = ahora.getHours();
+            const fechaHoy = ahora.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+
+            // 1. Si es fin de semana, no busca
+            if (diaSemana === 0 || diaSemana === 6) return;
+
+            // 2. Si es antes de las 4:00 PM (16:00 hrs), no busca
+            if (hora < 16) return;
+
+            // 3. Si ya se actualizó hoy, no repite peticiones para ahorrar recursos
+            const ultimaFecha = localStorage.getItem('bcv_ultima_fecha');
+            if (ultimaFecha === fechaHoy) return;
+
+            try {
+                // Consulta al servicio ligero de tasas de Venezuela
+                const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+                if (!respuesta.ok) return;
+                
+                const datos = await respuesta.json();
+                const nuevaTasa = parseFloat(datos.promedio);
+
+                if (nuevaTasa && !isNaN(nuevaTasa) && nuevaTasa !== estado.tasaBCV) {
+                    estado.tasaBCV = nuevaTasa;
+                    guardarDatos();
+                    localStorage.setItem('bcv_ultima_fecha', fechaHoy);
+                    actualizarUI();
+                    console.log(`Tasa BCV actualizada automáticamente a: ${nuevaTasa}`);
+                }
+            } catch (error) {
+                console.log("No se pudo actualizar la tasa automáticamente hoy.");
+            }
         }
 
         function reiniciarDatos() {
@@ -1199,7 +1235,9 @@
 
         function cerrarModalCuentas() { document.getElementById('modal-cuentas').classList.add('hidden'); }
 
+        // Inicializar interfaz y ejecutar verificación inteligente de tasa BCV en segundo plano
         actualizarUI();
+        verificarYActualizarTasaBCV();
     </script>
 </body>
 </html>
