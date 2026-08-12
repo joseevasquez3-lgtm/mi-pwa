@@ -1221,7 +1221,7 @@
 
             estado.cuentasLiquidas.forEach(c => {
                 let eqUSD = convertirAUSDActual(c.saldoNativo, c.moneda);
-                listaCuentas.innerHTML += `<div class="flex justify-between text-sm py-1 border-b border-gray-50"><div><span class="text-gray-700 block">${c.nombre}</span><span class="text-[10px] text-gray-400">${c.saldoNativo.toFixed(2)} ${c.moneda}</span></div><span class="font-medium text-gray-900">~$${eqUSD.toFixed(2)} USD</span></div>`;
+                listaCuentas.innerHTML += `<div class="flex justify-between text-sm py-1 border-b border-gray-50"><div><span class="text-gray-700 block">${c.nombre}</span><span class="text-[10px] text-gray-400">${c.saldoNativo.saldoNativo ? c.saldoNativo.toFixed(2) : c.saldoNativo.toFixed(2)} ${c.moneda}</span></div><span class="font-medium text-gray-900">~$${eqUSD.toFixed(2)} USD</span></div>`;
             });
 
             let totalDeudas = 0;
