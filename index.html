@@ -5,7 +5,7 @@
     <link rel="apple-touch-icon" href="https://joseevasquez3-lgtm.github.io/mi-pwa/logo.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sandbox - Control Financiero v13 (Definitivo con Gráficas)</title>
+    <title>Sandbox - Control Financiero v13.1 (Definitivo + IA + Botón Más)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -17,9 +17,10 @@
         .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
         .tab-btn.active { border-bottom: 2px solid #111827; color: #111827; font-weight: 600; }
         .tab-btn { color: #9CA3AF; }
+        .fab-btn { position: fixed; bottom: 20px; right: 20px; z-index: 40; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     </style>
 </head>
-<body class="text-gray-800 p-4 max-w-md mx-auto relative pb-12">
+<body class="text-gray-800 p-4 max-w-md mx-auto relative pb-20">
 
     <!-- Header con Tasas y Selector de Día -->
     <header class="mb-4 mt-2 flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-gray-100">
@@ -46,13 +47,14 @@
         </div>
     </header>
 
-    <!-- Navegación de Vistas -->
+    <!-- Navegación de Vistas (Incluyendo IA) -->
     <div class="flex border-b border-gray-200 mb-4 bg-white rounded-t-lg px-1 overflow-x-auto">
         <button onclick="cambiarVista('finanzas')" id="tab-finanzas" class="tab-btn active flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Flujo</button>
         <button onclick="cambiarVista('transferencias')" id="tab-transferencias" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">P2P/Bancos</button>
         <button onclick="cambiarVista('trading')" id="tab-trading" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Trading</button>
         <button onclick="cambiarVista('graficas')" id="tab-graficas" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Gráficas</button>
         <button onclick="cambiarVista('analitica')" id="tab-analitica" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Análisis %</button>
+        <button onclick="cambiarVista('ia')" id="tab-ia" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1 text-purple-600 font-bold">✨ Asistente IA</button>
     </div>
 
     <!-- VISTA 1: FINANZAS / FLUJO DIARIO Y MENSUAL -->
@@ -87,7 +89,7 @@
             </div>
         </div>
 
-        <div class="card p-5 mb-6">
+        <div class="card p-5 mb-6" id="seccion-registrar-movimiento">
             <div class="flex justify-between items-center border-b pb-2 mb-4">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Registrar Movimiento</h2>
                 
@@ -284,7 +286,7 @@
         </div>
     </div>
 
-    <!-- VISTA NUEVA: GRÁFICAS Y ROI -->
+    <!-- VISTA: GRÁFICAS Y ROI -->
     <div id="vista-graficas" class="hidden space-y-4">
         <div class="card p-5">
             <div class="flex justify-between items-center border-b pb-2 mb-3">
@@ -309,7 +311,7 @@
         </div>
     </div>
 
-    <!-- VISTA NUEVA: ANÁLISIS % Y BALANCE -->
+    <!-- VISTA: ANÁLISIS % Y BALANCE -->
     <div id="vista-analitica" class="hidden space-y-4">
         <div class="card p-4 bg-gray-900 text-white">
             <div class="flex justify-between items-center mb-3">
@@ -349,6 +351,32 @@
             <div id="lista-balance-diario" class="space-y-3 max-h-[380px] overflow-y-auto pr-1"></div>
         </div>
     </div>
+
+    <!-- NUEVA VISTA: ASISTENTE IA FINANCIERO -->
+    <div id="vista-ia" class="hidden space-y-4">
+        <div class="card p-5 bg-gradient-to-br from-purple-900 to-indigo-900 text-white shadow-lg">
+            <div class="flex items-center space-x-2 border-b border-purple-700 pb-3 mb-3">
+                <span class="text-xl">✨</span>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-purple-200">Sandbox Asistente IA</h2>
+            </div>
+            <p class="text-xs text-purple-100 mb-4">Analizador inteligente conectado a tus saldos líquidos, deudas, tasas BCV/USDT y flujo de caja actual.</p>
+            <button onclick="generarAnalisisIA()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded text-xs transition-colors shadow">
+                🧠 Generar Diagnóstico Financiero IA
+            </button>
+        </div>
+
+        <div class="card p-5">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide border-b pb-2 mb-3">Reporte y Recomendaciones</h3>
+            <div id="contenido-ia" class="text-xs text-gray-700 space-y-3">
+                <p class="text-gray-400 italic text-center py-4">Haz clic en el botón superior para que la IA analice tu estado financiero actual.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTÓN FLOTANTE (+) MÁS -->
+    <button onclick="accionBotonMas()" class="fab-btn bg-gray-900 hover:bg-black text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg transition-transform hover:scale-105 active:scale-95" title="Acción Rápida (+)">
+        +
+    </button>
 
     <!-- MODAL DE CUENTAS Y DEUDAS -->
     <div id="modal-cuentas" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
@@ -460,17 +488,53 @@
         }
 
         function cambiarVista(vista) {
-            ['finanzas', 'transferencias', 'trading', 'graficas', 'analitica'].forEach(v => {
-                document.getElementById('vista-' + v).classList.add('hidden');
-                document.getElementById('tab-' + v).classList.remove('active');
+            ['finanzas', 'transferencias', 'trading', 'graficas', 'analitica', 'ia'].forEach(v => {
+                const elem = document.getElementById('vista-' + v);
+                const tabElem = document.getElementById('tab-' + v);
+                if(elem) elem.classList.add('hidden');
+                if(tabElem) tabElem.classList.remove('active');
             });
-            document.getElementById('vista-' + vista).classList.remove('hidden');
-            document.getElementById('tab-' + vista).classList.add('active');
+            const vistaActiva = document.getElementById('vista-' + vista);
+            const tabActiva = document.getElementById('tab-' + vista);
+            if(vistaActiva) vistaActiva.classList.remove('hidden');
+            if(tabActiva) tabActiva.classList.add('active');
             
             if(vista === 'transferencias') actualizarSelectsP2P();
             if(vista === 'trading') actualizarSelectsTrading();
             if(vista === 'graficas') renderizarGraficasLineales();
             if(vista === 'analitica') actualizarVistaAnalitica();
+        }
+
+        // ACCIÓN DEL BOTÓN MÁS FLOTANTE (+)
+        function accionBotonMas() {
+            cambiarVista('finanzas');
+            window.scrollTo({ top: 200, behavior: 'smooth' });
+            document.getElementById('monto-movimiento').focus();
+        }
+
+        // ASISTENTE DE IA FINANCIERO LOCAL
+        function generarAnalisisIA() {
+            let disponible = obtenerDisponibleUSD();
+            let totalDeudas = estado.deudas.reduce((acc, d) => acc + d.montoUSD, 0);
+            let totalTrades = estado.historialTrades.reduce((acc, t) => acc + t.montoGanancia, 0);
+            
+            let contenedor = document.getElementById('contenido-ia');
+            let recomendacionAhorro = disponible > 100 ? "Tienes buena liquidez disponible." : "Atención: Tu liquidez líquida está baja, cuida tus gastos diarios.";
+            let statusDeudas = totalDeudas > 0 ? `Posees un total de $${totalDeudas.toFixed(2)} USD registrados en pasivos/deudas. Mantén un plan de abono constante.` : "No registras deudas pendientes.";
+
+            contenedor.innerHTML = `
+                <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-2">
+                    <p class="font-bold text-purple-900">📊 Resumen Ejecutivo Inteligente:</p>
+                    <p>• <strong>Liquidez Real:</strong> ~$${disponible.toFixed(2)} USD distribuidos en tus cuentas.</p>
+                    <p>• <strong>Trading:</strong> Has acumulado +$${totalTrades.toFixed(2)} USDT en beneficios con ${estado.historialTrades.length} operaciones.</p>
+                    <p>• <strong>Deudas Totales:</strong> $${totalDeudas.toFixed(2)} USD.</p>
+                </div>
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
+                    <p class="font-bold text-blue-900">💡 Sugerencia del Asistente:</p>
+                    <p>${recomendacionAhorro}</p>
+                    <p>${statusDeudas}</p>
+                </div>
+            `;
         }
 
         function cambiarSubTabP2P(sub) {
@@ -492,7 +556,7 @@
             let nuevaBCV = prompt("Actualizar Tasa Oficial BCV (Modo Contingencia Manual):", estado.tasaBCV);
             if (nuevaBCV !== null && !isNaN(nuevaBCV) && nuevaBCV.trim() !== "") {
                 estado.tasaBCV = parseFloat(nuevaBCV);
-                estado.esTasaManual = true; // Activa el indicador manual
+                estado.esTasaManual = true;
             }
             let nuevaUSDT = prompt("Actualizar Tasa Binance USDT:", estado.tasaUSDT);
             if (nuevaUSDT !== null && !isNaN(nuevaUSDT) && nuevaUSDT.trim() !== "") {
@@ -504,7 +568,6 @@
 
         async function restaurarTasaAutomatica() {
             estado.esTasaManual = false;
-            
             try {
                 const respuesta = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
                 if (respuesta.ok) {
@@ -517,7 +580,6 @@
             } catch (e) {
                 console.log("No se pudo conectar a la API, manteniendo valor anterior.");
             }
-            
             guardarDatos();
             actualizarUI();
             alert("Tasa restaurada al modo automático.");
@@ -644,7 +706,6 @@
             document.getElementById('txt-tasa').innerText = estado.tasaBCV.toFixed(2);
             document.getElementById('txt-tasa-usdt').innerText = estado.tasaUSDT.toFixed(2);
             
-            // Forzar visualización del botón de restaurar si está en modo manual
             const btnRestaurar = document.getElementById('btn-restaurar-tasa');
             if (estado.esTasaManual) {
                 btnRestaurar.classList.remove('hidden');
@@ -875,7 +936,7 @@
                 puntosRoiPct.push(roiPct);
             });
 
-            svgRoi.innerHTML = generarSVGLineas(fechasKeys.map(f => fechasMap[f].fechaFormato), puntosRoiIng, puntosRoiPct, "Ingresos ($)", "ROI (%)", "#10B981", "#3B82F6");
+            if(svgRoi) svgRoi.innerHTML = generarSVGLineas(fechasKeys.map(f => fechasMap[f].fechaFormato), puntosRoiIng, puntosRoiPct, "Ingresos ($)", "ROI (%)", "#10B981", "#3B82F6");
 
             let svgGastos = document.getElementById('grafico-gastos');
             let acumuladoGasto = 0;
@@ -888,7 +949,7 @@
                 puntosPresupuestoMeta.push(estado.presupuestoDiario * (idx + 1));
             });
 
-            svgGastos.innerHTML = generarSVGLineas(fechasKeys.map(f => fechasMap[f].fechaFormato), puntosGastos, puntosPresupuestoMeta, "Gastos ($)", "Meta Presup.", "#EF4444", "#6366F1");
+            if(svgGastos) svgGastos.innerHTML = generarSVGLineas(fechasKeys.map(f => fechasMap[f].fechaFormato), puntosGastos, puntosPresupuestoMeta, "Gastos ($)", "Meta Presup.", "#EF4444", "#6366F1");
         }
 
         function generarSVGLineas(labels, serie1, serie2, label1, label2, color1, color2) {
@@ -1081,6 +1142,7 @@
 
         function renderizarP2PHistorial() {
             const listaP2P = document.getElementById('lista-p2p');
+            if(!listaP2P) return;
             listaP2P.innerHTML = '';
             let p2pFiltrado = estado.filtroFecha ? estado.historialP2P.filter(p => p.fechaISO === estado.filtroFecha) : estado.historialP2P;
             const hoyISO = new Date().toISOString().split('T')[0];
@@ -1154,6 +1216,7 @@
 
         function renderizarTrades() {
             const listaTrades = document.getElementById('lista-trades');
+            if(!listaTrades) return;
             listaTrades.innerHTML = '';
             let tradesFiltrados = estado.filtroFecha ? estado.historialTrades.filter(t => t.fechaISO === estado.filtroFecha) : estado.historialTrades;
             
