@@ -90,27 +90,35 @@
         </div>
         
 <!-- Módulo de Escáner Inteligente (Adaptado a Tema Claro) -->
-    <div class="card p-5 mb-6 border-l-4 border-cyan-600 bg-white shadow-sm">
-        <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-1 flex items-center">
-            <svg class="w-4 h-4 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            Escáner IA de Comprobantes
-        </h3>
-        <p class="text-xs text-gray-500 mb-4">Sube un capture de Banesco, Pago Móvil o Binance. La IA extraerá los datos automáticamente.</p>
-        
-        <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-cyan-600 hover:bg-cyan-50/50 transition-all group" onclick="document.getElementById('input-comprobante').click()">
-            <svg class="w-8 h-8 mx-auto text-gray-400 group-hover:text-cyan-600 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-            <p class="text-xs text-gray-700 font-medium">Toca para abrir galería o tomar una foto</p>
-            <p class="text-[10px] text-gray-400 mt-0.5">Soporta JPG, PNG (Max 5MB)</p>
-            <input type="file" id="input-comprobante" class="hidden" accept="image/*" onchange="procesarImagenSeleccionada(event)">
-        </div>
-
-        <!-- Loader de Procesamiento -->
-        <div id="scanner-loader" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col justify-center items-center z-10 rounded-lg">
-            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-600 mb-2"></div>
-            <p class="text-cyan-800 text-xs font-medium animate-pulse">Analizando píxeles financieros...</p>
-        </div>
+<div class="card p-5 mb-6 border-l-4 border-cyan-600 bg-white shadow-sm relative overflow-hidden">
+    <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-1 flex items-center">
+        <svg class="w-4 h-4 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        Escáner IA de Comprobantes
+    </h3>
+    <p class="text-xs text-gray-500 mb-4">Sube un capture de Banesco, Pago Móvil o Binance. La IA extraerá los datos automáticamente.</p>
+    
+    <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-cyan-600 hover:bg-cyan-50/50 transition-all group" onclick="document.getElementById('input-comprobante').click()">
+        <svg class="w-8 h-8 mx-auto text-gray-400 group-hover:text-cyan-600 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        <p class="text-xs text-gray-700 font-medium">Toca para abrir galería o tomar una foto</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Soporta JPG, PNG (Max 5MB)</p>
+        <input type="file" id="input-comprobante" class="hidden" accept="image/*" onchange="procesarImagenSeleccionada(event)">
     </div>
-        
+
+    <!-- Loader de Procesamiento -->
+    <div id="scanner-loader" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col justify-center items-center z-10 rounded-lg">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-600 mb-2"></div>
+        <p class="text-cyan-800 text-xs font-medium animate-pulse">Analizando píxeles financieros...</p>
+    </div>
+</div>
+        <div class="seccion-registro">
+    <h3>Registrar Comprobante</h3>
+    
+    <!-- Aquí colocas el input para que aparezca el botón de seleccionar archivo -->
+    <input type="file" id="input-comprobante" accept="image/*" onchange="procesarImagenSeleccionada(event)">
+
+    <!-- Y el indicador de carga (puedes ocultarlo con CSS usando la clase .hidden { display: none; }) -->
+    <div id="scanner-loader" class="hidden">Procesando comprobante con IA...</div>
+</div>
         <div class="card p-5 mb-6" id="seccion-registrar-movimiento">
             <div class="flex justify-between items-center border-b pb-2 mb-4">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Registrar Movimiento</h2>
@@ -467,133 +475,105 @@
             localStorage.setItem('sandbox_estado_v13', JSON.stringify(estado));
         }
 
-// Variable global para la API Key (idealmente el usuario la guarda la primera vez)
-let oaiKey = localStorage.getItem('aura_openai_key') || "";
-
+// 1. Procesa la imagen seleccionada y la convierte a Base64
 function procesarImagenSeleccionada(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if(!oaiKey) {
-        oaiKey = prompt("Por favor, ingresa tu API Key de OpenAI para activar el escáner:");
-        if(!oaiKey) return;
-        localStorage.setItem('aura_openai_key', oaiKey);
-    }
-
     const reader = new FileReader();
     reader.onload = async function(e) {
         const base64Image = e.target.result;
-        await analizarConIA(base64Image);
+        await analizarConCloudflare(base64Image);
     };
     reader.readAsDataURL(file);
 }
 
-async function analizarConIA(base64Image) {
+// 2. Envía la imagen al Cloudflare Worker que configuramos
+async function analizarConCloudflare(base64Image) {
     const loader = document.getElementById('scanner-loader');
-    loader.classList.remove('hidden');
-
-    const promptSistema = `Eres el motor de análisis de la app AuraFi. Analiza el comprobante bancario o de criptomonedas en la imagen. 
-    Extrae los datos y responde ESTRICTAMENTE con un objeto JSON válido usando esta estructura exacta, sin texto adicional:
-    {
-      "tipo": "gasto" o "ingreso" o "p2p" o "trade",
-      "monto": numero (float, sin separadores de miles),
-      "moneda": "BS" o "USDT",
-      "origen": "Banco o Plataforma (ej. Banesco, Binance)",
-      "concepto": "Descripción corta (ej. Pago Supermercado, Compra P2P)",
-      "fecha": "YYYY-MM-DD"
-    }`;
+    if (loader) loader.classList.remove('hidden');
 
     try {
-        // Usamos AllOrigins como pasarela CORS compatible
-        const targetUrl = 'https://api.openai.com/v1/chat/completions';
-        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+        const urlWorker = 'https://wispy-mode-88a0.joseevasquez-3.workers.dev';
 
-        const response = await fetch(proxyUrl, {
+        const response = await fetch(urlWorker, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${oaiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: "gpt-4o",
-                messages: [
-                    { role: "system", content: promptSistema },
-                    { role: "user", content: [
-                        { type: "text", text: "Extrae el JSON de este recibo." },
-                        { type: "image_url", image_url: { url: base64Image, detail: "low" } }
-                    ]}
-                ],
-                max_tokens: 300,
-                response_format: { type: "json_object" } 
+                image: base64Image
             })
         });
 
         const data = await response.json();
-        if(data.error) throw new Error(data.error.message);
+        if (data.error) throw new Error(data.error);
         
-        const payloadParseado = JSON.parse(data.choices[0].message.content);
-        confirmarTransaccionEscaneada(payloadParseado);
+        // Procesamos los movimientos devueltos por el Worker
+        confirmarTransaccionesEscaneadas(data);
 
     } catch (error) {
-        console.error("Error en OCR Cognitivo:", error);
-        alert("Ocurrió un error leyendo el recibo. Revisa tu conexión o tu API Key.");
+        console.error("Error al procesar el comprobante:", error);
+        alert("Ocurrió un error leyendo el recibo: " + error.message);
     } finally {
-        loader.classList.add('hidden');
-        document.getElementById('input-comprobante').value = '';
+        if (loader) loader.classList.add('hidden');
+        const inputComp = document.getElementById('input-comprobante');
+        if (inputComp) inputComp.value = '';
     }
 }
-        function confirmarTransaccionEscaneada(datos) {
-    // Aquí usamos la IA para auto-completar los inputs de tu UI existente.
-    // Asumiendo que tu formulario manual tiene IDs específicos. 
-    // Como ejemplo, crearemos un prompt nativo avanzado:
+
+// 3. Inserta los movimientos detectados en tu estado y actualiza la UI
+function confirmarTransaccionesEscaneadas(data) {
+    if (!data.movimientos || data.movimientos.length === 0) {
+        alert("La IA no pudo detectar movimientos claros en esta imagen.");
+        return;
+    }
+
+    // Tomamos el primer movimiento detectado (o puedes iterar si vienen varios)
+    const datos = data.movimientos[0];
     
-    const mensaje = `¡Capture leído exitosamente!
+    // Normalizamos valores por si vienen con formato de texto
+    const montoNum = parseFloat(datos.monto) || 0;
+    const tipoMov = datos.tipo && datos.tipo.toLowerCase().includes('ingreso') ? 'ingreso' : 'gasto';
+    const monedaDetectada = datos.moneda || 'BS';
+
+    const mensaje = `¡Comprobante leído con éxito!
     
 Resumen detectado:
-Tipo: ${datos.tipo.toUpperCase()}
-Monto: ${datos.monto} ${datos.moneda}
-Origen/Banco: ${datos.origen}
+Tipo: ${tipoMov.toUpperCase()}
+Monto: ${montoNum}
 Concepto: ${datos.concepto}
 
-¿Deseas registrar este movimiento ahora mismo en tus cuentas?`;
+¿Deseas registrar este movimiento en Sandbox Fintech?`;
 
-    if(confirm(mensaje)) {
-        // Enrutador inteligente dependiendo de lo que leyó la IA
-        if(datos.tipo === 'p2p' || datos.concepto.toLowerCase().includes('p2p')) {
-            // Manda los datos pre-cargados a tu formulario P2P
-            document.getElementById('p2p-monto').value = datos.monto;
-            alert("Ve a la sección P2P, hemos dejado el monto de " + datos.monto + " listo para ti.");
-        } else {
-            // Ejecutamos la lógica estándar de registro de la V13
-            let montoUSD = datos.moneda === 'BS' ? convertirAUSDActual(datos.monto, 'BS') : datos.monto;
-            
-            estado.historial.unshift({
-                id: Date.now(),
-                concepto: `${datos.origen}: ${datos.concepto}`,
-                montoNativo: datos.monto,
-                montoUSD: montoUSD,
-                moneda: datos.moneda,
-                tipo: datos.tipo === 'gasto' ? 'gasto' : 'ingreso',
-                fechaISO: datos.fecha || new Date().toISOString().split('T')[0],
-                fechaFormato: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
-                tasaBCVRef: estado.tasaBCV, 
-                tasaUSDTRef: estado.tasaUSDT
-            });
-            
-            // Restar/Sumar de la primera cuenta en esa moneda (Lógica rápida, ajustable)
-            const cuentaAfectada = estado.cuentasLiquidas.find(c => c.moneda === datos.moneda);
-            if(cuentaAfectada) {
-                if(datos.tipo === 'gasto') cuentaAfectada.saldoNativo -= datos.monto;
-                else cuentaAfectada.saldoNativo += datos.monto;
-            }
-
-            guardarDatos();
-            actualizarUI();
-            alert("¡Movimiento registrado con éxito vía IA!");
-        }
-    }
-}
+    if (confirm(mensaje)) {
+        let montoUSD = monedaDetectada === 'BS' ? convertirAUSDActual(montoNum, 'BS') : montoNum;
         
+        estado.historial.unshift({
+            id: Date.now(),
+            concepto: datos.concepto,
+            montoNativo: montoNum,
+            montoUSD: montoUSD,
+            moneda: monedaDetectada,
+            tipo: tipoMov,
+            fechaISO: new Date().toISOString().split('T')[0],
+            fechaFormato: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+            tasaBCVRef: estado.tasaBCV, 
+            tasaUSDTRef: estado.tasaUSDT
+        });
+        
+        // Afecta el saldo de la primera cuenta que coincida con la moneda
+        const cuentaAfectada = estado.cuentasLiquidas.find(c => c.moneda === monedaDetectada);
+        if (cuentaAfectada) {
+            if (tipoMov === 'gasto') cuentaAfectada.saldoNativo -= montoNum;
+            else cuentaAfectada.saldoNativo += montoNum;
+        }
+
+        guardarDatos();
+        actualizarUI();
+        alert("¡Movimiento registrado con éxito vía Cloudflare Worker!");
+    }
+} 
         // LÓGICA INTELIGENTE DE ACTUALIZACIÓN AUTOMÁTICA DE TASA BCV
         async function verificarYActualizarTasaBCV() {
             if (estado.esTasaManual) return;
