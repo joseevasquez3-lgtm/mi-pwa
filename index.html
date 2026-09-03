@@ -9,56 +9,54 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0B0F19; color: #E5E7EB; }
-        .card { background: #131A2A; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5); }
+        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .toggle-checkbox:checked { right: 0; border-color: #06B6D4; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #06B6D4; }
-        .tab-btn.active { border-bottom: 2px solid #06B6D4; color: #06B6D4; font-weight: 600; }
+        .toggle-checkbox:checked { right: 0; border-color: #10B981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
+        .tab-btn.active { border-bottom: 2px solid #111827; color: #111827; font-weight: 600; }
         .tab-btn { color: #9CA3AF; }
-        .fab-btn { position: fixed; bottom: 20px; right: 20px; z-index: 40; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4); }
+        .fab-btn { position: fixed; bottom: 20px; right: 20px; z-index: 40; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     </style>
 </head>
-<body class="text-gray-200 p-4 max-w-md mx-auto relative pb-20 selection:bg-cyan-500 selection:text-white">
+<body class="text-gray-800 p-4 max-w-md mx-auto relative pb-20">
 
-    <!-- Header Sandbox -->
-    <header class="mb-4 mt-2 flex justify-between items-center bg-[#131A2A] p-3 rounded-xl border border-white/10 shadow-lg">
+    <!-- Header con Tasas y Selector de Día -->
+    <header class="mb-4 mt-2 flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-gray-100">
         <div>
-            <h1 class="text-base font-bold text-white tracking-wide flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> Sandbox Fintech
-            </h1>
+            <h1 class="text-base font-semibold text-gray-900">Sandbox Fintech</h1>
             <div class="flex items-center space-x-2 mt-0.5">
-                <span class="text-[10px] text-gray-400" id="txt-modo-fecha">Vista General</span>
-                <input type="date" id="selector-fecha-filtro" onchange="cambiarFiltroFecha(this.value)" class="text-[10px] border border-gray-700 rounded px-1 py-0.5 bg-[#0B0F19] text-gray-300 focus:outline-none focus:border-cyan-500">
-                <button onclick="limpiarFiltroFecha()" id="btn-limpiar-fecha" class="text-[10px] text-cyan-400 hover:underline hidden">Ver Todo</button>
+                <span class="text-[10px] text-gray-400" id="txt-modo-fecha">Vista General (Acumulado)</span>
+                <input type="date" id="selector-fecha-filtro" onchange="cambiarFiltroFecha(this.value)" class="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-gray-50 text-gray-600 focus:outline-none">
+                <button onclick="limpiarFiltroFecha()" id="btn-limpiar-fecha" class="text-[10px] text-blue-600 hover:underline hidden">Ver Todo</button>
             </div>
         </div>
         <div class="flex space-x-3 text-right">
             <div>
                 <div class="flex items-center justify-end space-x-1">
                     <span class="text-[9px] uppercase font-semibold text-gray-400">Tasa BCV</span>
-                    <button id="btn-restaurar-tasa" onclick="restaurarTasaAutomatica()" class="text-xs text-cyan-400 hover:text-cyan-300 font-bold hidden bg-cyan-950 px-1.5 py-0.5 rounded border border-cyan-800" title="Volver a tasa automática">🔄</button>
+                    <button id="btn-restaurar-tasa" onclick="restaurarTasaAutomatica()" class="text-xs text-blue-600 hover:text-blue-800 font-bold hidden bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200" title="Volver a tasa automática">🔄</button>
                 </div>
-                <span class="text-xs font-bold text-gray-100" id="txt-tasa">748.79</span>
+                <span class="text-xs font-bold text-gray-800" id="txt-tasa">748.79</span>
             </div>
             <div>
-                <span class="text-[9px] uppercase font-semibold text-yellow-500 block">Tasa USDT</span>
-                <span class="text-xs font-bold text-yellow-400" id="txt-tasa-usdt">840.00</span>
+                <span class="text-[9px] uppercase font-semibold text-yellow-600 block">Tasa USDT</span>
+                <span class="text-xs font-bold text-yellow-600" id="txt-tasa-usdt">840.00</span>
             </div>
         </div>
     </header>
 
-    <!-- Navegación de Vistas -->
-    <div class="flex border-b border-gray-800 mb-4 bg-[#131A2A] rounded-t-xl px-1 overflow-x-auto border-x border-t border-white/5">
+    <!-- Navegación de Vistas (Incluyendo IA) -->
+    <div class="flex border-b border-gray-200 mb-4 bg-white rounded-t-lg px-1 overflow-x-auto">
         <button onclick="cambiarVista('finanzas')" id="tab-finanzas" class="tab-btn active flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Flujo</button>
         <button onclick="cambiarVista('transferencias')" id="tab-transferencias" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">P2P/Bancos</button>
         <button onclick="cambiarVista('trading')" id="tab-trading" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Trading</button>
         <button onclick="cambiarVista('graficas')" id="tab-graficas" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Gráficas</button>
         <button onclick="cambiarVista('analitica')" id="tab-analitica" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Análisis %</button>
-        <button onclick="cambiarVista('ia')" id="tab-ia" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1 text-purple-400 font-bold">✨ Asistente IA</button>
+        <button onclick="cambiarVista('ia')" id="tab-ia" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1 text-purple-600 font-bold">✨ Asistente IA</button>
     </div>
-    
+
     <!-- VISTA 1: FINANZAS / FLUJO DIARIO Y MENSUAL -->
     <div id="vista-finanzas">
         <div class="grid grid-cols-2 gap-4 mb-4">
@@ -90,7 +88,29 @@
                 <span class="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded font-medium border border-green-200">Ver Cuentas y Deudas ⚙️</span>
             </div>
         </div>
+        
+<!-- Módulo de Escáner Inteligente (Adaptado a Tema Claro) -->
+    <div class="card p-5 mb-6 border-l-4 border-cyan-600 bg-white shadow-sm">
+        <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            Escáner IA de Comprobantes
+        </h3>
+        <p class="text-xs text-gray-500 mb-4">Sube un capture de Banesco, Pago Móvil o Binance. La IA extraerá los datos automáticamente.</p>
+        
+        <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-cyan-600 hover:bg-cyan-50/50 transition-all group" onclick="document.getElementById('input-comprobante').click()">
+            <svg class="w-8 h-8 mx-auto text-gray-400 group-hover:text-cyan-600 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            <p class="text-xs text-gray-700 font-medium">Toca para abrir galería o tomar una foto</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">Soporta JPG, PNG (Max 5MB)</p>
+            <input type="file" id="input-comprobante" class="hidden" accept="image/*" onchange="procesarImagenSeleccionada(event)">
+        </div>
 
+        <!-- Loader de Procesamiento -->
+        <div id="scanner-loader" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col justify-center items-center z-10 rounded-lg">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-600 mb-2"></div>
+            <p class="text-cyan-800 text-xs font-medium animate-pulse">Analizando píxeles financieros...</p>
+        </div>
+    </div>
+        
         <div class="card p-5 mb-6" id="seccion-registrar-movimiento">
             <div class="flex justify-between items-center border-b pb-2 mb-4">
                 <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Registrar Movimiento</h2>
@@ -98,7 +118,7 @@
                 <div class="flex items-center text-xs font-medium">
                     <span id="label-gasto" class="text-gray-900 mr-2">Gasto</span>
                     <div class="relative inline-block w-10 h-5 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" id="tipo-movimiento" onchange="cambiarTipoMovimiento()" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-[#0B0F19] text-gray-200 border-4 appearance-none cursor-pointer z-10 top-0 left-0 transition-transform duration-200 ease-in-out"/>
+                        <input type="checkbox" id="tipo-movimiento" onchange="cambiarTipoMovimiento()" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 left-0 transition-transform duration-200 ease-in-out"/>
                         <label for="tipo-movimiento" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
                     </div>
                     <span id="label-ingreso" class="text-gray-400 ml-2">Ingreso</span>
@@ -109,11 +129,11 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Monto</label>
-                        <input type="number" id="monto-movimiento" placeholder="0.00" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-base focus:outline-none focus:border-blue-500">
+                        <input type="number" id="monto-movimiento" placeholder="0.00" class="w-full border border-gray-300 rounded px-3 py-2 text-base focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Moneda</label>
-                        <select id="moneda-movimiento" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-[#0B0F19] text-gray-200">
+                        <select id="moneda-movimiento" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white">
                             <option value="BS">Bolívares (Bs)</option>
                             <option value="USDT">Binance (USDT)</option>
                             <option value="BCV">Dólares BCV ($)</option>
@@ -124,11 +144,11 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Concepto</label>
-                        <select id="categoria-movimiento" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-[#0B0F19] text-gray-200"></select>
+                        <select id="categoria-movimiento" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"></select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Cuenta Afectada</label>
-                        <select id="cuenta-movimiento" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-[#0B0F19] text-gray-200"></select>
+                        <select id="cuenta-movimiento" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"></select>
                     </div>
                 </div>
 
@@ -154,7 +174,7 @@
     <!-- VISTA 2: P2P / CAMBIO / BANCOS -->
     <div id="vista-transferencias" class="hidden">
         <div class="flex bg-gray-200 p-1 rounded-lg mb-4 text-xs font-semibold">
-            <button onclick="cambiarSubTabP2P('p2p')" id="subtab-p2p" class="flex-1 py-1.5 rounded-md bg-[#0B0F19] text-gray-200 shadow-sm text-center">Binance P2P</button>
+            <button onclick="cambiarSubTabP2P('p2p')" id="subtab-p2p" class="flex-1 py-1.5 rounded-md bg-white shadow-sm text-center">Binance P2P</button>
             <button onclick="cambiarSubTabP2P('banco')" id="subtab-banco" class="flex-1 py-1.5 rounded-md text-gray-500 text-center">Transferencia Bancaria</button>
         </div>
 
@@ -164,24 +184,24 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Tipo de Operación</label>
-                        <select id="p2p-tipo" onchange="actualizarLabelsP2P()" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200">
+                        <select id="p2p-tipo" onchange="actualizarLabelsP2P()" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white">
                             <option value="venta">Vender USDT (A Banco)</option>
                             <option value="compra">Comprar USDT (Desde Banco)</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1" id="label-monto-p2p-titulo">Monto USDT</label>
-                        <input type="number" id="p2p-monto" placeholder="Ej: 5.00" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-base">
+                        <input type="number" id="p2p-monto" placeholder="Ej: 5.00" class="w-full border border-gray-300 rounded px-3 py-2 text-base">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Cuenta Binance</label>
-                        <select id="p2p-cuenta-binance" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200"></select>
+                        <select id="p2p-cuenta-binance" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"></select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Cuenta Banco Local</label>
-                        <select id="p2p-cuenta-banco" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200"></select>
+                        <select id="p2p-cuenta-banco" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"></select>
                     </div>
                 </div>
                 <div id="contenedor-comision" class="bg-gray-50 p-3 rounded text-xs text-gray-600 flex justify-between items-center">
@@ -199,16 +219,16 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs text-gray-500 mb-1">Monto en Bolívares (Bs)</label>
-                    <input type="number" id="banco-monto-bs" placeholder="Ej: 14800.00" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-base">
+                    <input type="number" id="banco-monto-bs" placeholder="Ej: 14800.00" class="w-full border border-gray-300 rounded px-3 py-2 text-base">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Banco Origen</label>
-                        <select id="banco-origen" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200"></select>
+                        <select id="banco-origen" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"></select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Banco Destino</label>
-                        <select id="banco-destino" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200"></select>
+                        <select id="banco-destino" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"></select>
                     </div>
                 </div>
                 <button onclick="ejecutarTransferenciaBancaria()" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded shadow transition-colors">
@@ -245,7 +265,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Criptoactiva</label>
-                        <select id="trade-crypto" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200">
+                        <select id="trade-crypto" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white">
                             <option value="BTC">BTC / USDT</option>
                             <option value="ETH">ETH / USDT</option>
                             <option value="SOL">SOL / USDT</option>
@@ -257,13 +277,13 @@
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Resultado (USDT)</label>
-                        <input type="number" id="trade-monto" placeholder="Ej: 15.50" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-base">
+                        <input type="number" id="trade-monto" placeholder="Ej: 15.50" class="w-full border border-gray-300 rounded px-3 py-2 text-base">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Tiempo</label>
-                        <select id="trade-tiempo" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200">
+                        <select id="trade-tiempo" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white">
                             <option value="Scalping (< 1h)">Scalping (&lt; 1h)</option>
                             <option value="Intradía (1h - 24h)">Intradía (1h - 24h)</option>
                             <option value="Swing (1 - 7 días)">Swing (1 - 7 días)</option>
@@ -271,7 +291,7 @@
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Acreditar a</label>
-                        <select id="trade-cuenta-destino" class="w-full border border-gray-700 focus:border-cyan-500 rounded px-3 py-2 text-sm bg-[#0B0F19] text-gray-200"></select>
+                        <select id="trade-cuenta-destino" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"></select>
                     </div>
                 </div>
                 <button onclick="registrarTrade()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-3 rounded shadow transition-colors">
@@ -376,13 +396,13 @@
     </div>
 
     <!-- BOTÓN FLOTANTE (+) MÁS -->
-<button onclick="accionBotonMas()" class="fab-btn bg-cyan-600 hover:bg-cyan-500 text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg transition-transform hover:scale-105 active:scale-95" title="Acción Rápida (+)">
-    +
-</button>
+    <button onclick="accionBotonMas()" class="fab-btn bg-gray-900 hover:bg-black text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg transition-transform hover:scale-105 active:scale-95" title="Acción Rápida (+)">
+        +
+    </button>
 
     <!-- MODAL DE CUENTAS Y DEUDAS -->
     <div id="modal-cuentas" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-[#0B0F19] text-gray-200 rounded-lg w-full max-w-sm p-5 modal-enter shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg w-full max-w-sm p-5 modal-enter shadow-xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
                 <h3 class="font-semibold text-gray-800">Saldos y Deudas Registradas</h3>
                 <button onclick="cerrarModalCuentas()" class="text-gray-400 hover:text-gray-600">✕</button>
@@ -543,12 +563,12 @@
             if(sub === 'p2p') {
                 document.getElementById('box-form-p2p').classList.remove('hidden');
                 document.getElementById('box-form-banco').classList.add('hidden');
-                document.getElementById('subtab-p2p').className = "flex-1 py-1.5 rounded-md bg-[#0B0F19] text-gray-200 shadow-sm text-center font-bold";
+                document.getElementById('subtab-p2p').className = "flex-1 py-1.5 rounded-md bg-white shadow-sm text-center font-bold";
                 document.getElementById('subtab-banco').className = "flex-1 py-1.5 rounded-md text-gray-500 text-center";
             } else {
                 document.getElementById('box-form-p2p').classList.add('hidden');
                 document.getElementById('box-form-banco').classList.remove('hidden');
-                document.getElementById('subtab-banco').className = "flex-1 py-1.5 rounded-md bg-[#0B0F19] text-gray-200 shadow-sm text-center font-bold";
+                document.getElementById('subtab-banco').className = "flex-1 py-1.5 rounded-md bg-white shadow-sm text-center font-bold";
                 document.getElementById('subtab-p2p').className = "flex-1 py-1.5 rounded-md text-gray-500 text-center";
                 actualizarSelectsBancos();
             }
