@@ -504,9 +504,9 @@ async function analizarConIA(base64Image) {
     }`;
 
     try {
-        // Usamos un proxy CORS para rutear la llamada de manera segura desde GitHub Pages
+        // Usamos AllOrigins como pasarela CORS compatible
         const targetUrl = 'https://api.openai.com/v1/chat/completions';
-        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
 
         const response = await fetch(proxyUrl, {
             method: 'POST',
