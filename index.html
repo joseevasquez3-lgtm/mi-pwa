@@ -504,7 +504,11 @@ async function analizarConIA(base64Image) {
     }`;
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        // Usamos un proxy CORS para rutear la llamada de manera segura desde GitHub Pages
+        const targetUrl = 'https://api.openai.com/v1/chat/completions';
+        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+
+        const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -535,7 +539,7 @@ async function analizarConIA(base64Image) {
         alert("Ocurrió un error leyendo el recibo. Revisa tu conexión o tu API Key.");
     } finally {
         loader.classList.add('hidden');
-        document.getElementById('input-comprobante').value = ''; // Resetear input
+        document.getElementById('input-comprobante').value = '';
     }
 }
         function confirmarTransaccionEscaneada(datos) {
