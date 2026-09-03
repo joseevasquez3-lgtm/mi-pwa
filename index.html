@@ -9,54 +9,56 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
-        .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        body { font-family: 'Inter', sans-serif; background-color: #0B0F19; color: #E5E7EB; }
+        .card { background: #131A2A; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5); }
         .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .toggle-checkbox:checked { right: 0; border-color: #10B981; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
-        .tab-btn.active { border-bottom: 2px solid #111827; color: #111827; font-weight: 600; }
+        .toggle-checkbox:checked { right: 0; border-color: #06B6D4; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #06B6D4; }
+        .tab-btn.active { border-bottom: 2px solid #06B6D4; color: #06B6D4; font-weight: 600; }
         .tab-btn { color: #9CA3AF; }
-        .fab-btn { position: fixed; bottom: 20px; right: 20px; z-index: 40; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .fab-btn { position: fixed; bottom: 20px; right: 20px; z-index: 40; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4); }
     </style>
 </head>
-<body class="text-gray-800 p-4 max-w-md mx-auto relative pb-20">
+<body class="text-gray-200 p-4 max-w-md mx-auto relative pb-20 selection:bg-cyan-500 selection:text-white">
 
-    <!-- Header con Tasas y Selector de Día -->
-    <header class="mb-4 mt-2 flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+    <!-- Header Sandbox -->
+    <header class="mb-4 mt-2 flex justify-between items-center bg-[#131A2A] p-3 rounded-xl border border-white/10 shadow-lg">
         <div>
-            <h1 class="text-base font-semibold text-gray-900">Sandbox Fintech</h1>
+            <h1 class="text-base font-bold text-white tracking-wide flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> Sandbox Fintech
+            </h1>
             <div class="flex items-center space-x-2 mt-0.5">
-                <span class="text-[10px] text-gray-400" id="txt-modo-fecha">Vista General (Acumulado)</span>
-                <input type="date" id="selector-fecha-filtro" onchange="cambiarFiltroFecha(this.value)" class="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-gray-50 text-gray-600 focus:outline-none">
-                <button onclick="limpiarFiltroFecha()" id="btn-limpiar-fecha" class="text-[10px] text-blue-600 hover:underline hidden">Ver Todo</button>
+                <span class="text-[10px] text-gray-400" id="txt-modo-fecha">Vista General</span>
+                <input type="date" id="selector-fecha-filtro" onchange="cambiarFiltroFecha(this.value)" class="text-[10px] border border-gray-700 rounded px-1 py-0.5 bg-[#0B0F19] text-gray-300 focus:outline-none focus:border-cyan-500">
+                <button onclick="limpiarFiltroFecha()" id="btn-limpiar-fecha" class="text-[10px] text-cyan-400 hover:underline hidden">Ver Todo</button>
             </div>
         </div>
         <div class="flex space-x-3 text-right">
             <div>
                 <div class="flex items-center justify-end space-x-1">
                     <span class="text-[9px] uppercase font-semibold text-gray-400">Tasa BCV</span>
-                    <button id="btn-restaurar-tasa" onclick="restaurarTasaAutomatica()" class="text-xs text-blue-600 hover:text-blue-800 font-bold hidden bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200" title="Volver a tasa automática">🔄</button>
+                    <button id="btn-restaurar-tasa" onclick="restaurarTasaAutomatica()" class="text-xs text-cyan-400 hover:text-cyan-300 font-bold hidden bg-cyan-950 px-1.5 py-0.5 rounded border border-cyan-800" title="Volver a tasa automática">🔄</button>
                 </div>
-                <span class="text-xs font-bold text-gray-800" id="txt-tasa">748.79</span>
+                <span class="text-xs font-bold text-gray-100" id="txt-tasa">748.79</span>
             </div>
             <div>
-                <span class="text-[9px] uppercase font-semibold text-yellow-600 block">Tasa USDT</span>
-                <span class="text-xs font-bold text-yellow-600" id="txt-tasa-usdt">840.00</span>
+                <span class="text-[9px] uppercase font-semibold text-yellow-500 block">Tasa USDT</span>
+                <span class="text-xs font-bold text-yellow-400" id="txt-tasa-usdt">840.00</span>
             </div>
         </div>
     </header>
 
-    <!-- Navegación de Vistas (Incluyendo IA) -->
-    <div class="flex border-b border-gray-200 mb-4 bg-white rounded-t-lg px-1 overflow-x-auto">
+    <!-- Navegación de Vistas -->
+    <div class="flex border-b border-gray-800 mb-4 bg-[#131A2A] rounded-t-xl px-1 overflow-x-auto border-x border-t border-white/5">
         <button onclick="cambiarVista('finanzas')" id="tab-finanzas" class="tab-btn active flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Flujo</button>
         <button onclick="cambiarVista('transferencias')" id="tab-transferencias" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">P2P/Bancos</button>
         <button onclick="cambiarVista('trading')" id="tab-trading" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Trading</button>
         <button onclick="cambiarVista('graficas')" id="tab-graficas" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Gráficas</button>
         <button onclick="cambiarVista('analitica')" id="tab-analitica" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1">Análisis %</button>
-        <button onclick="cambiarVista('ia')" id="tab-ia" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1 text-purple-600 font-bold">✨ Asistente IA</button>
+        <button onclick="cambiarVista('ia')" id="tab-ia" class="tab-btn flex-1 py-2 text-[10px] uppercase tracking-wider text-center transition-colors whitespace-nowrap px-1 text-purple-400 font-bold">✨ Asistente IA</button>
     </div>
-
+    
     <!-- VISTA 1: FINANZAS / FLUJO DIARIO Y MENSUAL -->
     <div id="vista-finanzas">
         <div class="grid grid-cols-2 gap-4 mb-4">
