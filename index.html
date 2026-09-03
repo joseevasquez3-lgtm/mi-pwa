@@ -562,7 +562,7 @@ function confirmarTransaccionesEscaneadas(data) {
         return;
     }
 
-    // Tomamos el primer movimiento detectado (o puedes iterar si vienen varios)
+    // Tomamos el primer movimiento detectado
     const datos = data.movimientos[0];
     
     // Normalizamos valores por si vienen con formato de texto
@@ -570,11 +570,37 @@ function confirmarTransaccionesEscaneadas(data) {
     const tipoMov = datos.tipo && datos.tipo.toLowerCase().includes('ingreso') ? 'ingreso' : 'gasto';
     const monedaDetectada = datos.moneda || 'BS';
 
+    // --- 1. CAPTURAR Y BUSCAR LA CUENTA EXACTA QUE DEVUELVE EL WORKER ---
+    let nombreBancoDetectado = datos.cuenta || "Banesco"; 
+    
+    // Buscamos dentro de tus cuentas líquidas la que coincida con el nombre que leyó la IA (ej. Banesco)
+    let cuentaAfectada = estado.cuentasLiquidas.find(c => 
+        c.nombre.toUpperCase().includes(nombreBancoDetectado.toUpperCase()) || 
+        nombreBancoDetectado.toUpperCase().includes(c.nombre.toUpperCase())
+    );
+
+    // Si por alguna razón no la encuentra por nombre exacto, recurre a la primera que coincida con la moneda
+    if (!cuentaAfectada) {
+        cuentaAfectada = estado.cuentasLiquidas.find(c => c.moneda === monedaDetectada) || estado.cuentasLiquidas[0];
+    }
+
+    const nombreCuentaFinal = cuentaAfectada ? cuentaAfectada.nombre : "Banesco";
+    const cuentaIdFinal = cuentaAfectada ? cuentaAfectada.id : "";
+
+    // --- 2. VALIDACIÓN DE SALDO ANTES DE PERMITIR EL GASTO ---
+    if (tipoMov === 'gasto' && cuentaAfectada) {
+        if (montoNum > cuentaAfectada.saldoNativo) {
+            alert(`¡Operación rechazada! Estás intentando registrar un gasto de ${montoNum} ${monedaDetectada}, pero tu cuenta "${cuentaAfectada.nombre}" solo tiene un saldo disponible de ${cuentaAfectada.saldoNativo.toFixed(2)} ${monedaDetectada}. Esto dejaría la cuenta en números rojos.`);
+            return; // Detiene el proceso y no registra nada
+        }
+    }
+
     const mensaje = `¡Comprobante leído con éxito!
     
 Resumen detectado:
+Banco / Cuenta: ${nombreCuentaFinal}
 Tipo: ${tipoMov.toUpperCase()}
-Monto: ${montoNum}
+Monto: ${montoNum} ${monedaDetectada}
 Concepto: ${datos.concepto}
 
 ¿Deseas registrar este movimiento en Sandbox Fintech?`;
@@ -589,14 +615,15 @@ Concepto: ${datos.concepto}
             montoUSD: montoUSD,
             moneda: monedaDetectada,
             tipo: tipoMov,
+            cuentaNombre: nombreCuentaFinal, // Guardamos el nombre de la cuenta en el historial
+            cuentaId: cuentaIdFinal,
             fechaISO: new Date().toISOString().split('T')[0],
             fechaFormato: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
             tasaBCVRef: estado.tasaBCV, 
             tasaUSDTRef: estado.tasaUSDT
         });
         
-        // Afecta el saldo de la primera cuenta que coincida con la moneda
-        const cuentaAfectada = estado.cuentasLiquidas.find(c => c.moneda === monedaDetectada);
+        // Afecta el saldo de la cuenta correcta encontrada
         if (cuentaAfectada) {
             if (tipoMov === 'gasto') cuentaAfectada.saldoNativo -= montoNum;
             else cuentaAfectada.saldoNativo += montoNum;
@@ -604,9 +631,9 @@ Concepto: ${datos.concepto}
 
         guardarDatos();
         actualizarUI();
-        alert("¡Movimiento registrado con éxito vía Cloudflare Worker!");
+        alert("¡Movimiento registrado con éxito y asociado a " + nombreCuentaFinal + "!");
     }
-} 
+}
         // LÓGICA INTELIGENTE DE ACTUALIZACIÓN AUTOMÁTICA DE TASA BCV
         async function verificarYActualizarTasaBCV() {
             if (estado.esTasaManual) return;
