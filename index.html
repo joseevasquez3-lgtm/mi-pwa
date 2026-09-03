@@ -467,6 +467,129 @@
             localStorage.setItem('sandbox_estado_v13', JSON.stringify(estado));
         }
 
+// Variable global para la API Key (idealmente el usuario la guarda la primera vez)
+let oaiKey = localStorage.getItem('aura_openai_key') || "";
+
+function procesarImagenSeleccionada(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if(!oaiKey) {
+        oaiKey = prompt("Por favor, ingresa tu API Key de OpenAI para activar el escáner:");
+        if(!oaiKey) return;
+        localStorage.setItem('aura_openai_key', oaiKey);
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const base64Image = e.target.result;
+        await analizarConIA(base64Image);
+    };
+    reader.readAsDataURL(file);
+}
+
+async function analizarConIA(base64Image) {
+    const loader = document.getElementById('scanner-loader');
+    loader.classList.remove('hidden');
+
+    const promptSistema = `Eres el motor de análisis de la app AuraFi. Analiza el comprobante bancario o de criptomonedas en la imagen. 
+    Extrae los datos y responde ESTRICTAMENTE con un objeto JSON válido usando esta estructura exacta, sin texto adicional:
+    {
+      "tipo": "gasto" o "ingreso" o "p2p" o "trade",
+      "monto": numero (float, sin separadores de miles),
+      "moneda": "BS" o "USDT",
+      "origen": "Banco o Plataforma (ej. Banesco, Binance)",
+      "concepto": "Descripción corta (ej. Pago Supermercado, Compra P2P)",
+      "fecha": "YYYY-MM-DD"
+    }`;
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${oaiKey}`
+            },
+            body: JSON.stringify({
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: promptSistema },
+                    { role: "user", content: [
+                        { type: "text", text: "Extrae el JSON de este recibo." },
+                        { type: "image_url", image_url: { url: base64Image, detail: "low" } }
+                    ]}
+                ],
+                max_tokens: 300,
+                response_format: { type: "json_object" } 
+            })
+        });
+
+        const data = await response.json();
+        if(data.error) throw new Error(data.error.message);
+        
+        const payloadParseado = JSON.parse(data.choices[0].message.content);
+        confirmarTransaccionEscaneada(payloadParseado);
+
+    } catch (error) {
+        console.error("Error en OCR Cognitivo:", error);
+        alert("Ocurrió un error leyendo el recibo. Revisa tu conexión o tu API Key.");
+    } finally {
+        loader.classList.add('hidden');
+        document.getElementById('input-comprobante').value = ''; // Resetear input
+    }
+}
+        function confirmarTransaccionEscaneada(datos) {
+    // Aquí usamos la IA para auto-completar los inputs de tu UI existente.
+    // Asumiendo que tu formulario manual tiene IDs específicos. 
+    // Como ejemplo, crearemos un prompt nativo avanzado:
+    
+    const mensaje = `¡Capture leído exitosamente!
+    
+Resumen detectado:
+Tipo: ${datos.tipo.toUpperCase()}
+Monto: ${datos.monto} ${datos.moneda}
+Origen/Banco: ${datos.origen}
+Concepto: ${datos.concepto}
+
+¿Deseas registrar este movimiento ahora mismo en tus cuentas?`;
+
+    if(confirm(mensaje)) {
+        // Enrutador inteligente dependiendo de lo que leyó la IA
+        if(datos.tipo === 'p2p' || datos.concepto.toLowerCase().includes('p2p')) {
+            // Manda los datos pre-cargados a tu formulario P2P
+            document.getElementById('p2p-monto').value = datos.monto;
+            alert("Ve a la sección P2P, hemos dejado el monto de " + datos.monto + " listo para ti.");
+        } else {
+            // Ejecutamos la lógica estándar de registro de la V13
+            let montoUSD = datos.moneda === 'BS' ? convertirAUSDActual(datos.monto, 'BS') : datos.monto;
+            
+            estado.historial.unshift({
+                id: Date.now(),
+                concepto: `${datos.origen}: ${datos.concepto}`,
+                montoNativo: datos.monto,
+                montoUSD: montoUSD,
+                moneda: datos.moneda,
+                tipo: datos.tipo === 'gasto' ? 'gasto' : 'ingreso',
+                fechaISO: datos.fecha || new Date().toISOString().split('T')[0],
+                fechaFormato: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+                tasaBCVRef: estado.tasaBCV, 
+                tasaUSDTRef: estado.tasaUSDT
+            });
+            
+            // Restar/Sumar de la primera cuenta en esa moneda (Lógica rápida, ajustable)
+            const cuentaAfectada = estado.cuentasLiquidas.find(c => c.moneda === datos.moneda);
+            if(cuentaAfectada) {
+                if(datos.tipo === 'gasto') cuentaAfectada.saldoNativo -= datos.monto;
+                else cuentaAfectada.saldoNativo += datos.monto;
+            }
+
+            guardarDatos();
+            actualizarUI();
+            alert("¡Movimiento registrado con éxito vía IA!");
+        }
+    }
+}
+        
         // LÓGICA INTELIGENTE DE ACTUALIZACIÓN AUTOMÁTICA DE TASA BCV
         async function verificarYActualizarTasaBCV() {
             if (estado.esTasaManual) return;
