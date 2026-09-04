@@ -541,6 +541,81 @@ async function analizarConCloudflare(base64Image) {
 
         const data = await response.json();
         if (data.error) throw new Error(data.error);
+
+        // ///////////////////////////////////////////////////////////
+// NUEVO: 1. Tu Diccionario de Reglas y Función Procesadora
+// ///////////////////////////////////////////////////////////
+
+const categoriasMaestras = [
+    "Colegio", 
+    "Alimentación", 
+    "Viáticos y Transporte", 
+    "Cuentas por Cobrar (Préstamos)", 
+    "Servicios Básicos",
+    "Gastos sin Clasificar"
+];
+
+const memoriaContactos = {
+    "J-501934070": { // El colegio u otra empresa
+        tipo: "Fijo", 
+        categoriaPorDefecto: "Colegio",
+        categoriasFrecuentes: ["Colegio"]
+    },
+    "V-12345678": { // Ejemplo: Cédula de tu hermano
+        tipo: "Dinamico", 
+        categoriaPorDefecto: "Alimentación",
+        categoriasFrecuentes: ["Alimentación", "Cuentas por Cobrar (Préstamos)"]
+    }
+};
+
+function procesarMovimientoIA(movimientoGemini) {
+    let categoriaFinal = "Gastos sin Clasificar";
+    let opcionesDisponibles = categoriasMaestras; 
+    let esDinamico = false;
+
+    // Evaluamos el identificador que extrajo la IA
+    const identificador = movimientoGemini.identificador_receptor;
+
+    if (identificador && memoriaContactos[identificador]) {
+        const contacto = memoriaContactos[identificador];
+        categoriaFinal = contacto.categoriaPorDefecto;
+        opcionesDisponibles = contacto.categoriasFrecuentes;
+        esDinamico = (contacto.tipo === "Dinamico");
+    }
+
+    return {
+        ...movimientoGemini,
+        categoriaAsignada: categoriaFinal,
+        opcionesSugeridas: opcionesDisponibles,
+        alertaRevision: esDinamico 
+    };
+}
+
+
+// ///////////////////////////////////////////////////////////
+// TUS FUNCIONES EXISTENTES (MODIFICADAS)
+// ///////////////////////////////////////////////////////////
+
+// 2. Envía la imagen al Cloudflare Worker que configuramos
+async function analizarConCloudflare(base64Image) {
+    const loader = document.getElementById('scanner-loader');
+    if (loader) loader.classList.remove('hidden');
+
+    try {
+        const urlWorker = 'https://wispy-mode-88a0.joseevasquez-3.workers.dev';
+
+        const response = await fetch(urlWorker, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                image: base64Image
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
         
         // Procesamos los movimientos devueltos por el Worker
         confirmarTransaccionesEscaneadas(data);
@@ -562,8 +637,9 @@ function confirmarTransaccionesEscaneadas(data) {
         return;
     }
 
-    // Tomamos el primer movimiento detectado
-    const datos = data.movimientos[0];
+    // NUEVO: Tomamos el primer movimiento detectado y LO PASAMOS POR EL CEREBRO LOCAL
+    const datosCrudos = data.movimientos[0];
+    const datos = procesarMovimientoIA(datosCrudos); // <-- Esta línea hace toda la magia
     
     // Normalizamos valores por si vienen con formato de texto
     const montoNum = parseFloat(datos.monto) || 0;
@@ -573,13 +649,12 @@ function confirmarTransaccionesEscaneadas(data) {
     // --- 1. CAPTURAR Y BUSCAR LA CUENTA EXACTA QUE DEVUELVE EL WORKER ---
     let nombreBancoDetectado = datos.cuenta || "Banesco"; 
     
-    // Buscamos dentro de tus cuentas líquidas la que coincida con el nombre que leyó la IA (ej. Banesco)
+    // Buscamos dentro de tus cuentas líquidas la que coincida con el nombre que leyó la IA
     let cuentaAfectada = estado.cuentasLiquidas.find(c => 
         c.nombre.toUpperCase().includes(nombreBancoDetectado.toUpperCase()) || 
         nombreBancoDetectado.toUpperCase().includes(c.nombre.toUpperCase())
     );
 
-    // Si por alguna razón no la encuentra por nombre exacto, recurre a la primera que coincida con la moneda
     if (!cuentaAfectada) {
         cuentaAfectada = estado.cuentasLiquidas.find(c => c.moneda === monedaDetectada) || estado.cuentasLiquidas[0];
     }
@@ -595,6 +670,7 @@ function confirmarTransaccionesEscaneadas(data) {
         }
     }
 
+    // NUEVO: Ajusté el mensaje para que veas en pantalla qué categoría le asignó el sistema
     const mensaje = `¡Comprobante leído con éxito!
     
 Resumen detectado:
@@ -602,6 +678,8 @@ Banco / Cuenta: ${nombreCuentaFinal}
 Tipo: ${tipoMov.toUpperCase()}
 Monto: ${montoNum} ${monedaDetectada}
 Concepto: ${datos.concepto}
+Identificador: ${datos.identificador_receptor || 'No detectado'}
+Categoría Sugerida: ${datos.categoriaAsignada} ${datos.alertaRevision ? '⚠️ (Revisar)' : ''}
 
 ¿Deseas registrar este movimiento en Sandbox Fintech?`;
 
@@ -615,12 +693,18 @@ Concepto: ${datos.concepto}
             montoUSD: montoUSD,
             moneda: monedaDetectada,
             tipo: tipoMov,
-            cuentaNombre: nombreCuentaFinal, // Guardamos el nombre de la cuenta en el historial
+            cuentaNombre: nombreCuentaFinal,
             cuentaId: cuentaIdFinal,
             fechaISO: new Date().toISOString().split('T')[0],
             fechaFormato: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
             tasaBCVRef: estado.tasaBCV, 
-            tasaUSDTRef: estado.tasaUSDT
+            tasaUSDTRef: estado.tasaUSDT,
+            
+            // NUEVO: Guardamos los nuevos datos en el historial para usarlos al renderizar
+            identificadorReceptor: datos.identificador_receptor,
+            categoria: datos.categoriaAsignada,
+            categoriasSugeridas: datos.opcionesSugeridas,
+            requiereRevision: datos.alertaRevision
         });
         
         // Afecta el saldo de la cuenta correcta encontrada
@@ -631,7 +715,7 @@ Concepto: ${datos.concepto}
 
         guardarDatos();
         actualizarUI();
-        alert("¡Movimiento registrado con éxito y asociado a " + nombreCuentaFinal + "!");
+        alert("¡Movimiento registrado con éxito en la categoría " + datos.categoriaAsignada + "!");
     }
 }
         // LÓGICA INTELIGENTE DE ACTUALIZACIÓN AUTOMÁTICA DE TASA BCV
